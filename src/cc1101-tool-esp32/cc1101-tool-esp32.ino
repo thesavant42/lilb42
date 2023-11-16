@@ -26,12 +26,12 @@
 
 // defining PINs set for ESP32 module
 // Example for XIAO ESP32 C3
-byte sck = 8;   // GPIO 8 
-byte miso = 4;  // GPIO 4
-byte mosi = 10; // GPIO 10
-byte ss = 20;   // GPIO 20
-int gdo0 = 21;  // GPIO 21
-int gdo2 = 7;   // GPIO 7
+byte sck = 26;   // GPIO 8 
+byte miso = 38;  // GPIO 4
+byte mosi = 23; // GPIO 10
+byte ss = 25;   // GPIO 20
+int gdo0 = 32;  // GPIO 21
+int gdo2 = 37;   // GPIO 7
 
 // defining PINs set for ESP32 WROOM module
 /*
