@@ -40,7 +40,7 @@ Left	GPIO39
 Right	GPIO36
 Down	GPIO0 (Also boot button)
 
-[Official Pinmap Image](https://www.lilygo.cc/cdn/shop/products/MINI1.02CORE.jpg)
+![Official Pinmap Image](https://www.lilygo.cc/cdn/shop/products/MINI1.02CORE.jpg)
 
 ## CC1101 Backpack
 
@@ -56,7 +56,7 @@ CC1101 StemmaQT i2C Port (3v)
 SDA 	IO21
 SCSL 	IO22
 
-[Official CC1101 Backpack Pinmap](https://ae01.alicdn.com/kf/S6641485d4f53444e9c491b434508d01cm.jpg_640x640q90.jpg)
+![Official CC1101 Backpack Pinmap](https://ae01.alicdn.com/kf/S6641485d4f53444e9c491b434508d01cm.jpg_640x640q90.jpg)
 
 ## NRF24L01 Backack
 
@@ -73,7 +73,7 @@ CE 		IO12
 SDA 	IO18
 SCL 	IO33
 
-(Official Image of NRF24L01 Backpack Pinmap)(https://ae01.alicdn.com/kf/Sdfea02bfab7f414fb55f6797c0865b22Q.jpg_640x640q90.jpg)
+![Official Image of NRF24L01 Backpack Pinmap](https://ae01.alicdn.com/kf/Sdfea02bfab7f414fb55f6797c0865b22Q.jpg_640x640q90.jpg)
 
 ## More Info
 
