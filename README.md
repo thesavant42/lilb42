@@ -94,7 +94,14 @@ SCSL 	IO22
 
 ### IR???
 
-The official CC1101 [RX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_RX/CC1101_RX.ino) and [TX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_TX/CC1101_TX.ino) examples have a subroutine for IR, does this actually work?
+There are also a pair of IR Receiver and Emitter LEDs, which can be seen referenced on the [schematic](.docs/schematic/Extension-CC1101.pdf).
+
+```
+#define IR_TX_PIN       12
+#define IR_RECEIVE_PIN  18
+```
+
+The official CC1101 [RX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_RX/CC1101_RX.ino) and [TX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_TX/CC1101_TX.ino) examples have a subroutine for IR, but do they actually work?
 
 ```
 #ifdef LILYGO_MINI_EPAPER_ESP32
