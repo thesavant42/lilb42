@@ -57,7 +57,7 @@ SDA 	IO21
 SCSL 	IO22
 
 ### IR???
-The official CC1101 [RX] (https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_RX/CC1101_RX.ino) and [TX] (https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_TX/CC1101_TX.ino) examples have a subroutine for IR, does this actually work?
+The official CC1101 [RX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_RX/CC1101_RX.ino) and [TX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_TX/CC1101_TX.ino) examples have a subroutine for IR, does this actually work?
 
 ```
 #ifdef LILYGO_MINI_EPAPER_ESP32
@@ -67,8 +67,8 @@ The official CC1101 [RX] (https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/b
 #define CC1101_CS       25
 #define CC1101_GDO0     32
 #define CC1101_GDO2     37
-#define IR_TX_PIN        12
-#define IR_RECEIVE_PIN   18
+#define IR_TX_PIN       12
+#define IR_RECEIVE_PIN  18
 #else
 #define CC1101_SCLK     8
 #define CC1101_MISO     6
@@ -105,11 +105,11 @@ SCL 	IO33
 
 ### Links
 
-[Lilygo Repo] (https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper) -- The Official Lilygo Repo for the Epaper Mini
+[Lilygo Repo](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper) -- The Official Lilygo Repo for the Epaper Mini
 
-[Esp32-SubGhz] (https://github.com/simondankelmann/Esp32-SubGhz) -- Suite that uses esp32 + cc1101 to capture and replay signals. Supports reading Flipper Zero .SUB SubGhz fies, if we can get the SDCard to pay nice
+[Esp32-SubGhz](https://github.com/simondankelmann/Esp32-SubGhz) -- Suite that uses esp32 + cc1101 to capture and replay signals. Supports reading Flipper Zero .SUB SubGhz fies, if we can get the SDCard to pay nice
 
-[cc1101-tool] (https://github.com/mcore1976/cc1101-tool) -- High level command line access to the CC1101 Radio API. 
+[cc1101-tool](https://github.com/mcore1976/cc1101-tool) -- High level command line access to the CC1101 Radio API. 
 
 ## Flipper Zero IR and SubGhz Files
 May as well shoot for feature-parity (at a 10th of the cost) . The CC1101 backpack (seems to? Maybe?) have IR, would be nice to port these dBs over. The S3 version of the ePaper Mini Coure *should* support HID/BadUSB 
