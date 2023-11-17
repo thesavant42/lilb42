@@ -1,6 +1,9 @@
  # LilB - Lilygo ePaper Mini Core 1.02 + CC1101 (and other) module
 
+![twin Bees](./docs/IMG_0131.jpg)
+
 This is a Standalone-Version with 4 Push-Buttons and 2 Led's to indicate RX and TX Operations. It is for Example possible to define 4 Signals in the Arduino Code that are transmitted when a button is pressed. 
+
 Uses a fork of the Elechouse-CC1101 drivers, to account for the radio being on the secondary SPI bus of the epaper mini.
 
 ## Examples
@@ -42,6 +45,14 @@ RST 	4
 BUSY	34
 ```
 
+### Power_Enable
+
+"In a new program, **this pin needs to output "HIGH"**, so that the product starts to run the program function"
+
+```
+IO27
+```
+
 ### 3 Way Rocker Switch 
 
 (Facing EPD Display)
@@ -52,9 +63,16 @@ Right	GPIO36
 Down	GPIO0 (Also boot button)
 ```
 
+### Battery Detection:
+
+```
+IO35
+```
+
 ![Official Pinmap Image](https://www.lilygo.cc/cdn/shop/products/MINI1.02CORE.jpg)
 
 ## CC1101 Backpack
+
 ### CC101 SPI
 
 ```
