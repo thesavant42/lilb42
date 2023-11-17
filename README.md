@@ -4,15 +4,19 @@ This is a Standalone-Version with 4 Push-Buttons and 2 Led's to indicate RX and 
 Uses a fork of the Elechouse-CC1101 drivers, to account for the radio being on the secondary SPI bus of the epaper mini.
 
 ## Examples
+
 ### Working:
+
 GxEPD_TF_Card_Example - Works as expected.
 cc1101-tool-esp32  - This appears to work as expected. 
 lilb42 - "Works", epd is updated with logo, not sure if the tx is working as expected
 
 ### Might be working:
+
 Esp32-CC1101-Standalone - "works" I think, not tested conclusively
 
 ### Not working yet:
+
 Esp32-SubGhz - Blocked, depends upoin SDFat which does not seem to want to play nicely with the TF Card of the EPaper Mini Core 1.02. Most likely because the TF Card SPI is non-standard for ESP32:
 
 Speaking of, here is pin mapping:
@@ -20,43 +24,58 @@ Speaking of, here is pin mapping:
 ## Pin Mappings
 ### TF Card
 
+```
 MOSI 15
 SCLK 14
 CS   13
 MISO 2
+```
 
 ### EPD
 
+```
 MOSI	21
 MISO	-1
 CLK 	22
 CS 		5
 RST 	4
 BUSY	34
+```
 
 ### 3 Way Rocker Switch 
 (Facing EPD Display)
+
+```
 Left	GPIO39
 Right	GPIO36
 Down	GPIO0 (Also boot button)
+```
 
 ![Official Pinmap Image](https://www.lilygo.cc/cdn/shop/products/MINI1.02CORE.jpg)
 
 ## CC1101 Backpack
 ### CC101 SPI
+
+```
 CC1101_SCLK	26
 CC1101_MISO	38
 CC1101_MOSI	23
 CC1101_CS 	25	
 CC1101_GD0 	32
 CC1101_GD2 	37
+```
 
 ### i2c
+
 CC1101 StemmaQT i2C Port (3v)
+
+```
 SDA 	IO21
 SCSL 	IO22
+```
 
 ### IR???
+
 The official CC1101 [RX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_RX/CC1101_RX.ino) and [TX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/blob/main/examples/Extension/CC1101_TX/CC1101_TX.ino) examples have a subroutine for IR, does this actually work?
 
 ```
@@ -88,16 +107,21 @@ The official CC1101 [RX](https://github.com/Xinyuan-LilyGO/LilyGO-Mini-Epaper/bl
 
 ### SPI (nrf24l01)
 
+```
 MISO 	IO38
 MOSI 	IO23
 IRQ 	IO37
 SCLK 	IO26
 CS 		IO25
 CE 		IO12
+```
 
 ### i2C
+
+```
 SDA 	IO18
 SCL 	IO33
+```
 
 ![Official Image of NRF24L01 Backpack Pinmap](https://ae01.alicdn.com/kf/Sdfea02bfab7f414fb55f6797c0865b22Q.jpg_640x640q90.jpg)
 
