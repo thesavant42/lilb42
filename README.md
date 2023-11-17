@@ -2,25 +2,24 @@
 
 ![twin Bees](./docs/IMG_0131.jpg)
 
-This is a Standalone-Version with 4 Push-Buttons and 2 Led's to indicate RX and TX Operations. It is for Example possible to define 4 Signals in the Arduino Code that are transmitted when a button is pressed. 
-
-Uses a fork of the Elechouse-CC1101 drivers, to account for the radio being on the secondary SPI bus of the epaper mini.
+Tiny ESP32 with ePaper Display, SDCard, and (perhaps most interestingly) a CC1101 Transciever / IR transciever backpacck. This project 
+uses a fork of the Elechouse-CC1101 drivers, to account for the radio being on the secondary SPI bus of the epaper mini.
 
 ## Examples
 
 ### Working:
 
-GxEPD_TF_Card_Example - Works as expected.
-cc1101-tool-esp32  - This appears to work as expected. 
-lilb42 - "Works", epd is updated with logo, not sure if the tx is working as expected
+[GxEPD_TF_Card_Example](./src/GxEPD_TF_Card_Example/) -- Works as expected.
+[cc1101-tool-esp32](./src/cc1101-tool-esp32/)  -- This appears to work as expected. 
+[lilb42](./src/lilb42/) -- "Works", epd is updated with logo, not sure if the tx is working as expected
 
 ### Might be working:
 
-Esp32-CC1101-Standalone - "works" I think, not tested conclusively
+[Esp32-CC1101-Standalone](./src/Esp32-CC1101-Standalone/) - "works" I think, not tested conclusively
 
 ### Not working yet:
 
-Esp32-SubGhz - Blocked, depends upoin SDFat which does not seem to want to play nicely with the TF Card of the EPaper Mini Core 1.02. Most likely because the TF Card SPI is non-standard for ESP32:
+[Esp32-SubGhz](./src/Esp32-SubGhz/) - Blocked, depends upoin SDFat which does not seem to want to play nicely with the TF Card of the EPaper Mini Core 1.02. Most likely because the TF Card SPI is non-standard for ESP32:
 
 Speaking of, here is pin mapping:
 
@@ -60,7 +59,7 @@ IO27
 ```
 Left	GPIO39
 Right	GPIO36
-Down	GPIO0 (Also boot button)
+Down	GPIO0   // (Also boot button)
 ```
 
 ### Battery Detection:
