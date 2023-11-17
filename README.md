@@ -5,6 +5,11 @@
 Tiny ESP32 with ePaper Display, SDCard, and (perhaps most interestingly) a CC1101 Transciever / IR transciever backpacck. This project 
 uses a fork of the Elechouse-CC1101 drivers, to account for the radio being on the secondary SPI bus of the epaper mini.
 
+## Why the name?
+1. Is smol
+2. Antenna like bee stinger
+3. Reminds me of [this](https://www.youtube.com/watch?v=4VTBam8YzQg) song from the times before Google.
+
 <h1 align = "center">🌟LilyGO Mini Epaper🌟</h1>
 
 --------------------------------------
@@ -67,19 +72,14 @@ Please enter the upload mode manually.
 
 ### Working:
 
-[GxEPD_TF_Card_Example](./src/GxEPD_TF_Card_Example/) -- Works as expected.
 [cc1101-tool-esp32](./src/cc1101-tool-esp32/)  -- This appears to work as expected. 
 [lilb42](./src/lilb42/) -- "Works", epd is updated with logo, not sure if the tx is working as expected
+[Esp32-SubGhz](./src/Esp32-SubGhz/) -- Now working! Sorted out how to use USER_SPI in SdFat-beta
+[GxEPD_TF_Card_Example](./src/GxEPD_TF_Card_Example/) -- Works as expected.
 
 ### Might be working:
 
 [Esp32-CC1101-Standalone](./src/Esp32-CC1101-Standalone/) - "works" I think, not tested conclusively
-
-### Not working yet:
-
-[Esp32-SubGhz](./src/Esp32-SubGhz/) - Blocked, depends upoin SDFat which does not seem to want to play nicely with the TF Card of the EPaper Mini Core 1.02. Most likely because the TF Card SPI is non-standard for ESP32:
-
-Speaking of, here is pin mapping:
 
 ## Pin Mappings
 ### TF Card
