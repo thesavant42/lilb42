@@ -1,20 +1,20 @@
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 
-// M1101
-#define PIN_GDO0 12
-#define PIN_GDO2 4
+// CC1101
+#define PIN_GDO0 32
+#define PIN_GDO2 37
 
 // BUTTONS
 #define THRESHOLD_BTN_CLICK 4000
-#define PIN_BTN_1 32
-#define PIN_BTN_2 25
-#define PIN_BTN_3 27
-#define PIN_BTN_4 14
+#define PIN_BTN_1 39
+#define PIN_BTN_2 36
+#define PIN_BTN_3 00
+//#define PIN_BTN_4 14 There is no 4th button accessible to us on the Mini Epaper Core 1.02
 
-// LED
-#define PIN_LED_RX 33
-#define PIN_LED_TX 26
-#define PIN_LED_ONBOARD 2
+// LED // None available to us 
+//#define PIN_LED_RX 33
+//#define PIN_LED_TX 26
+//#define PIN_LED_ONBOARD 2
 
 #define LENGTH_SAMPLES_SIGNAL_1 5
 #define LENGTH_SAMPLES_SIGNAL_2 5
@@ -24,19 +24,19 @@
 int samples_signal_1[LENGTH_SAMPLES_SIGNAL_1] = {250,-250,250,-250,250};
 int samples_signal_2[LENGTH_SAMPLES_SIGNAL_1] = {250,-250,250,-250,250};
 int samples_signal_3[LENGTH_SAMPLES_SIGNAL_1] = {250,-250,250,-250,250};
-int samples_signal_4[LENGTH_SAMPLES_SIGNAL_1] = {250,-250,250,-250,250};
+//int samples_signal_4[LENGTH_SAMPLES_SIGNAL_1] = {250,-250,250,-250,250};
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
-  pinMode(PIN_LED_ONBOARD, OUTPUT);
-  pinMode(PIN_LED_RX, OUTPUT);
-  pinMode(PIN_LED_TX, OUTPUT);
+//  pinMode(PIN_LED_ONBOARD, OUTPUT);
+//  pinMode(PIN_LED_RX, OUTPUT);
+//  pinMode(PIN_LED_TX, OUTPUT);
 
   pinMode(PIN_BTN_1, INPUT);
   pinMode(PIN_BTN_2, INPUT);
   pinMode(PIN_BTN_3, INPUT);
-  pinMode(PIN_BTN_4, INPUT);
+//  pinMode(PIN_BTN_4, INPUT);
 
   //CC1101 SETUP
   initCC1101(433.92);
@@ -71,7 +71,7 @@ void loop() {
   int state_btn_1 = analogRead(PIN_BTN_1);
   int state_btn_2 = analogRead(PIN_BTN_2);
   int state_btn_3 = analogRead(PIN_BTN_3);
-  int state_btn_4 = analogRead(PIN_BTN_4);
+  //int state_btn_4 = analogRead(PIN_BTN_4);
 
   // BUTTON 1  
   if(state_btn_1 >= THRESHOLD_BTN_CLICK){
@@ -79,6 +79,7 @@ void loop() {
       delay(10);
     }
     //BTN 1 CLICKED
+    Serial.println("BTN 1 CLICKED!");
     sendSamples(samples_signal_1, LENGTH_SAMPLES_SIGNAL_1, 433.92);
   }
 
@@ -88,6 +89,7 @@ void loop() {
       delay(10);
     }
     //BTN 2 CLICKED
+    Serial.println("BTN 2 CLICKED!");
     sendSamples(samples_signal_2, LENGTH_SAMPLES_SIGNAL_2, 315);
   }
   
@@ -97,22 +99,23 @@ void loop() {
       delay(10);
     }
     //BTN 3 CLICKED
-    //sendSamples(samples_signal_3, LENGTH_SAMPLES_SIGNAL_3, 433.92);
+    Serial.println("BTN 3 CLICKED!");
+    sendSamples(samples_signal_3, LENGTH_SAMPLES_SIGNAL_3, 433.92);
   }
 
   // BUTTON 4
-  if(state_btn_4 >= THRESHOLD_BTN_CLICK){
-    while(analogRead(PIN_BTN_4) >= THRESHOLD_BTN_CLICK) {
-      delay(10);
-    }
-    //BTN 4 CLICKED
-    //sendSamples(samples_signal_4, LENGTH_SAMPLES_SIGNAL_4, 433.92);
-  }
+  //if(state_btn_4 >= THRESHOLD_BTN_CLICK){
+  //  while(analogRead(PIN_BTN_4) >= THRESHOLD_BTN_CLICK) {
+  //    delay(10);
+  //  }
+  //  //BTN 4 CLICKED
+  //  //sendSamples(samples_signal_4, LENGTH_SAMPLES_SIGNAL_4, 433.92);
+  //}
 }
 
 void sendSamples(int samples[], int samplesLenght, float mhz) {
   initCC1101(mhz);
-  digitalWrite(PIN_LED_TX, HIGH);
+  //digitalWrite(PIN_LED_TX, HIGH);
   Serial.print("Transmitting ");
   Serial.print(samplesLenght);
   Serial.println(" Samples");
@@ -140,5 +143,5 @@ void sendSamples(int samples[], int samplesLenght, float mhz) {
   digitalWrite(PIN_GDO0,0);
 
   Serial.println("Transmission completed.");
-  digitalWrite(PIN_LED_TX, LOW);
+  //digitalWrite(PIN_LED_TX, LOW);
 }

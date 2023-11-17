@@ -3,3 +3,4 @@
 script
 build
 test.sh
+.theia

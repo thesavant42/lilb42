@@ -1,15 +1,16 @@
 // SD FAT LIB
 #include <SdFat.h>
 SdFat SD;
-#define MICRO_SD_IO 5
+#define MICRO_SD_IO 13 // was set to 5
 File flipperFile;
 String fileToTransmit = "";
+#define SD_CONFIG SdSpiConfig(MICRO_SD_IO , USER_SPI_BEGIN, 1000000)
 
 // CC1101 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 float cc1101_mhz = 433.92;
-#define CCGDO0 2 //GPIO2
-#define CCGDO2 4 //GPIO4
+#define CCGDO0 32 //GPIO2
+#define CCGDO2 37 //GPIO4
 
 // JSON SUPPORT
 #include <ArduinoJson.h>
@@ -27,13 +28,24 @@ void sendSamples(int samples[], int samplesLenght);
 
 void setup()
 {
-    Serial.begin(1000000);
+    Serial.begin(115200);
     pinMode(CCGDO0,OUTPUT);
-
+    //pinMode(27, OUTPUT); // EPD_POWER_ENABLE
+    //digitalWrite(27, HIGH); // EPD_POWER_ENABLE
     initBluetooth();
     Serial.println("The device started, now you can pair it with bluetooth!");
     initCC1101();
     Serial.println("CC1101 Connection OK");
+    //
+    while (!Serial) {}
+    pinMode(13, OUTPUT);     // probably not needed
+    digitalWrite(13, HIGH);  // probably not needed
+    SPI.begin(14, 2, 15);
+    SPI.setFrequency(1000000);  // probably not needed
+    if (!SD.begin(SD_CONFIG)) {
+      SD.initErrorHalt(&Serial);
+    }
+    //
     initSdCard();
     Serial.println("SD Card initialized");
 }
@@ -51,7 +63,7 @@ void initSdCard(){
 }
 
 void initCC1101(){
-    ELECHOUSE_cc1101.setSpiPin(14, 12, 13, 15); // (SCK, MISO, MOSI, CSN); 
+    ELECHOUSE_cc1101.setSpiPin(26, 38, 23, 25); // (SCK, MISO, MOSI, CSN); 
     ELECHOUSE_cc1101.Init();
     ELECHOUSE_cc1101.setGDO(CCGDO0, CCGDO2);
     ELECHOUSE_cc1101.setMHZ(cc1101_mhz);        // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
