@@ -72,17 +72,17 @@ Please enter the upload mode manually.
 
 ### Working:
 
-[cc1101-tool-esp32](./src/cc1101-tool-esp32/)  -- This appears to work as expected. 
-[lilb42](./src/lilb42/) -- "Works", epd is updated with logo, not sure if the tx is working as expected
-[Esp32-SubGhz](./src/Esp32-SubGhz/) -- Now working! Sorted out how to use USER_SPI in SdFat-beta
-[GxEPD_TF_Card_Example](./src/GxEPD_TF_Card_Example/) -- Works as expected.
+1. [cc1101-tool-esp32](./src/cc1101-tool-esp32/)  ⋅⋅* This appears to work as expected. 
+2. [lilb42](./src/lilb42/) ⋅⋅* "Works", epd is updated with logo, not sure if the tx is working as expected
+3. [Esp32-SubGhz](./src/Esp32-SubGhz/) ⋅⋅* Now working! Sorted out how to use USER_SPI in SdFat-beta
+4. [GxEPD_TF_Card_Example](./src/GxEPD_TF_Card_Example/) ⋅⋅* Works as expected.
 
 ### Might be working:
 
 [Esp32-CC1101-Standalone](./src/Esp32-CC1101-Standalone/) - "works" I think, not tested conclusively
 
 ## Pin Mappings
-### TF Card
+### TF / SD Card
 
 ```
 MOSI 15
@@ -91,7 +91,7 @@ CS   13
 MISO 2
 ```
 
-### EPD
+### E-Paper Display
 
 ```
 MOSI	21

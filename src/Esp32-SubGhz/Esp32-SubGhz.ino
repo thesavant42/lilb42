@@ -1,21 +1,17 @@
-// SD FAT LIB-beta
+// Esp43-SubGhz: lil'B edition
 // with edits by @thesavant42 to work with the Lilygo epaper Mini Core 1.02"
 // and its CC1101 backpack - 11/17/2023
 #include <SdFat.h>
 SdFat SD;
-#define MICRO_SD_IO 13          // SD Card CS, was set to 5
+
 File flipperFile;
 String fileToTransmit = "";
 // use USER_SPI for epaper mini  
-#define SD_CONFIG SdSpiConfig(MICRO_SD_IO , USER_SPI_BEGIN, 1000000)
+#define SD_CONFIG SdSpiConfig(SDCARD_SS_PIN , USER_SPI_BEGIN, 1000000)
 
 // CC1101 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 float cc1101_mhz = 433.92;
-// begin savant cc1101 backpack edits
-#define CCGDO0 32               // was GPIO2
-#define CCGDO2 37               // was GPIO4
-// end savant cc1101 backpack edits
 
 // JSON SUPPORT
 #include <ArduinoJson.h>
@@ -33,18 +29,19 @@ void sendSamples(int samples[], int samplesLenght);
 
 void setup()
 {
-    Serial.begin(115200);       // This was set to 1000000 but who uses that speed?
-    pinMode(CCGDO0,OUTPUT);
+    Serial.begin(115200);
+    pinMode(RF_GDO0,OUTPUT);
     initBluetooth();
     Serial.println("The device started, now you can pair it with bluetooth!");
     initCC1101();
     Serial.println("CC1101 Connection OK");
+    
     // Begin savant custom SD init
     while (!Serial) {}
-    pinMode(13, OUTPUT);        // SD Card Chip Select, probably not needed 
-    digitalWrite(13, HIGH);     // SD Card Chip Select, probably not needed
-    SPI.begin(14, 2, 15);       // SD  SCLK, MISO, MOSI
-    SPI.setFrequency(1000000);  // ESP32 Custom SPI limited speed, maybe not needed
+    pinMode(SDCARD_SS_PIN, OUTPUT);                               // SD Card Chip Select
+    digitalWrite(SDCARD_SS_PIN, HIGH);                            // SD Card Chip Select
+    SPI.begin(SDCARD_SCK_PIN, SDCARD_MISO_PIN, SDCARD_MOSI_PIN);  // SD  SCLK, MISO, MOSI
+    SPI.setFrequency(1000000);                                    // ESP32 Custom SPI limited speed
     if (!SD.begin(SD_CONFIG)) {
       SD.initErrorHalt(&Serial);
     }
@@ -59,11 +56,10 @@ void initBluetooth(){
 }
 
 void initSdCard(){
-  pinMode(13, OUTPUT);        // SD Card Chip Select, probably not needed 
-  digitalWrite(13, HIGH);     // SD Card Chip Select, probably not needed
-  SPI.begin(14, 2, 15);       // SD  SCLK, MISO, MOSI
-  SPI.setFrequency(1000000);  // ESP32 Custom SPI limited speed, maybe not needed
-  //if (!SD.begin(MICRO_SD_IO, SPI_HALF_SPEED)) { // This is the old line from original esp32subghz
+  pinMode(SDCARD_SS_PIN, OUTPUT);                                 // SD Card Chip Select
+  digitalWrite(SDCARD_SS_PIN, HIGH);                              // SD Card Chip Select
+  SPI.begin(SDCARD_SCK_PIN, SDCARD_MISO_PIN, SDCARD_MOSI_PIN);    // SD  SCLK, MISO, MOSI
+  SPI.setFrequency(1000000);                                      // ESP32 Custom SPI limited speed
   if (!SD.begin(SD_CONFIG)) {
       SD.initErrorHalt();
       Serial.println("Card Mount Failed");
@@ -71,9 +67,9 @@ void initSdCard(){
 }
 
 void initCC1101(){
-    ELECHOUSE_cc1101.setSpiPin(26, 38, 23, 25); // (SCK, MISO, MOSI, CSN) - savant; 
+    ELECHOUSE_cc1101.setSpiPin(RF_SCK, RF_MISO, RF_MOSI, RF_CS);
     ELECHOUSE_cc1101.Init();
-    ELECHOUSE_cc1101.setGDO(CCGDO0, CCGDO2);
+    ELECHOUSE_cc1101.setGDO(RF_GDO0, RF_GDO2);
     ELECHOUSE_cc1101.setMHZ(cc1101_mhz);    // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
     ELECHOUSE_cc1101.SetTx();               // set Transmit on
     ELECHOUSE_cc1101.setModulation(2);      // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
@@ -158,7 +154,7 @@ String listDirJson(const char * dirname, byte tabulation) {
       file.getName(fileName, sizeof(fileName));
 
       for (uint8_t i = 0; i < tabulation; i++) Serial.write('\t');
-      Serial.print(fileName);
+      Serial.println(fileName); // Serial.print(fileName); output in serial terminal is easier to read
 
       if (file.isDir()) {
         directories.add(String(fileName));
@@ -266,10 +262,8 @@ void transmitFlipperFile(const char * filename, bool transmit){
               } else {
                 value += String(dataChar);
 
-                // Serial.println("if command = RAW_Data");
                 if(command == "RAW_Data"){
                   if(dataChar == ' '){
-                    // Serial.println("replace spaces in current sample");
                     // REPLACE SPACES IN CURRENT SAMPLE
                     value.replace(" ","");
                     if(value != ""){
@@ -284,11 +278,9 @@ void transmitFlipperFile(const char * filename, bool transmit){
               break;
         }
     }
-    //Serial.println("flipper file close");
     flipperFile.close();
 
     if(transmit == false){
-      //Serial.println("Start transmitting the data");
       // START TRANSMITTING THE DATA
       fileToTransmit = filename;
       transmitFlipperFile(filename, true);
@@ -306,7 +298,6 @@ void sendSamples(int samples[], int samplesLenght) {
       byte n = 0;
 
       for (int i=0; i < samplesLenght; i++) {
-        //Serial.print(".");
         // TRANSMIT
         n = 1;
         
@@ -317,7 +308,7 @@ void sendSamples(int samples[], int samplesLenght) {
           n = 0;
         }
 
-        digitalWrite(CCGDO0,n);
+        digitalWrite(RF_GDO0,n);
         
         //time = micros();
         //while(micros() < time+totalDelay);
@@ -325,6 +316,6 @@ void sendSamples(int samples[], int samplesLenght) {
       }
 
       // STOP TRANSMITTING
-      digitalWrite(CCGDO0,0);
+      digitalWrite(RF_GDO0,0);
       Serial.println("Transmission completed.");
   }
