@@ -79,8 +79,6 @@ void drawBitmaps_test()
     // int16_t h2 = display.height() / 2;
     display.setRotation(0);
 
-    //drawBitmapFromSD("10d@2x.bmp", 0, 0);
-    //delay(2000);
     drawBitmapFromSD("output5.bmp", 0, 0);
     delay(2000);
     drawBitmapFromSD("betty_1.bmp", 0, 0);
