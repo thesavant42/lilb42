@@ -53,6 +53,7 @@ void loop()
     u8g2Fonts.setFont(u8g2_font_pxplusibmvga9_tf ); // u8g2_font_4x6_tf 
     display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
+    
     u8g2Fonts.setCursor(60, 0);    // start writing at this position
     u8g2Fonts.print("SHUTUP && HACK");
     u8g2Fonts.setCursor(40, 30);
