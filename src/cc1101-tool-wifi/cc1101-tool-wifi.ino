@@ -1,4 +1,3 @@
-//
 // CC1101 interactive terminal tool
 // allows for sending / receiving data over serial port
 // on selected radio channel, modulation, ..
@@ -6,9 +5,6 @@
 // (C) Adam Loboda '2023 , adam.loboda@wp.pl
 //  
 // based on great SmartRC library by Little_S@tan
-// Please download ZIP from 
-// https://github.com/LSatan/SmartRC-CC1101-Driver-Lib
-// and attach it as ZIP library for Arduino
 //
 // Also uses Arduino Command Line interpreter by Edgar Bonet
 // from https://gist.github.com/edgar-bonet/607b387260388be77e96
@@ -24,24 +20,23 @@
 #if !defined(LILYGO_MINI_EPAPER_ESP32S3)  && !defined(LILYGO_MINI_EPAPER_ESP32)
 #error "Please select the corresponding target board name above the sketch and uncomment it."
 #endif
+
+#include <Arduino.h>
+//#include <Wire.h>
 // Prepare Wifi
 #include <WiFi.h>
-//#include <Wire.h>
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
-
+WiFiManager wm;
 
 // Prepare EPD
 #include <boards.h>
 #include <GxEPD.h>
-
 #include <GxGDGDEW0102T4/GxGDGDEW0102T4.h> //1.02" b/w
 #include GxEPD_BitmapExamples
-#include <savant128x80.h>
-#include <bmo.h>
+#include <images.h> // SUAH custom images
 #include <U8g2_for_Adafruit_GFX.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
 #include <GxIO/GxIO.h>
-
 
 GxIO_Class io(SPI,  EPD_CS, EPD_DC,  EPD_RSET);
 GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
@@ -59,59 +54,26 @@ void LilyGo_logo(void);
 #define BUF_LENGTH 128             // Buffer for the incoming command.
 
 // defining PINs set for ESP32 module
-// Example for XIAO ESP32 C3
-byte sck = 26;   // GPIO 8 
-byte miso = 38;  // GPIO 4
-byte mosi = 23; // GPIO 10
-byte ss = 25;   // GPIO 20
-int gdo0 = 32;  // GPIO 21
-int gdo2 = 37;   // GPIO 7
+byte sck = 26;   
+byte miso = 38;  
+byte mosi = 23;
+byte ss = 25;
+int gdo0 = 32;
+int gdo2 = 37;
 
-// defining PINs set for ESP32 WROOM module
-/*
-byte sck = 18;     // GPIO 18
-byte miso = 19;    // GPIO 19
-byte mosi = 23;    // GPIO
-byte ss = 5;       // GPIO 5
-int gdo0 = 2;      // GPIO 2
-int gdo2 = 4;      // GPIO 4
-*/
-
-// position in big recording buffer
-int bigrecordingbufferpos = 0; 
-
-// number of frames in big recording buffer
-int framesinbigrecordingbuffer = 0; 
-
-// check if CLI receiving mode enabled
-int receivingmode = 0; 
-
-// check if CLI jamming mode enabled
-int jammingmode = 0; 
-
-// check if CLI recording mode enabled
-int recordingmode = 0; 
-
-// check if CLI chat mode enabled
-int chatmode = 0; 
-
+int bigrecordingbufferpos = 0;      // position in big recording buffer
+int framesinbigrecordingbuffer = 0; // number of frames in big recording buffer
+int receivingmode = 0;              // check if CLI receiving mode enabled
+int jammingmode = 0;                // check if CLI jamming mode enabled
+int recordingmode = 0;              // check if CLI recording mode enabled
+int chatmode = 0;                   // check if CLI chat mode enabled
 static bool do_echo = true;
-
-// buffer for receiving  CC1101
-byte ccreceivingbuffer[CCBUFFERSIZE] = {0};
-
-// buffer for sending  CC1101
-byte ccsendingbuffer[CCBUFFERSIZE] = {0};
+byte ccreceivingbuffer[CCBUFFERSIZE] = {0};         // buffer for receiving  CC1101
+byte ccsendingbuffer[CCBUFFERSIZE] = {0};           // buffer for sending  CC1101
 //char ccsendingbuffer[CCBUFFERSIZE] = {0};
-
-// buffer for recording and replaying of many frames
-byte bigrecordingbuffer[RECORDINGBUFFERSIZE] = {0};
-
-// buffer for hex to ascii conversions 
-byte textbuffer[BUF_LENGTH];
+byte bigrecordingbuffer[RECORDINGBUFFERSIZE] = {0}; // buffer for recording and replaying of many frames
+byte textbuffer[BUF_LENGTH];                        // buffer for hex to ascii conversions 
 //char textbuffer[BUF_LENGTH];
-
-
 
 // convert bytes in table to string with hex numbers
 void asciitohex(byte *ascii_ptr, byte *hex_ptr,int len)
@@ -136,7 +98,6 @@ void asciitohex(byte *ascii_ptr, byte *hex_ptr,int len)
     };
     hex_ptr[(2*i)+2] = '\0' ; 
 }
-
 
 // convert string with hex numbers to array of bytes
  void  hextoascii(byte *ascii_ptr, byte *hex_ptr,int len)
@@ -193,9 +154,7 @@ static void cc1101initialize(void)
     ELECHOUSE_cc1101.setAppendStatus(0);    // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 }
 
-
 // Execute a complete CC1101 command.
-
 static void exec(char *cmdline)
 { 
         
@@ -1148,82 +1107,89 @@ static void exec(char *cmdline)
     }
 }
 
-
 void setup() {
-
-     // initialize USB Serial Port CDC
-     Serial.begin(115200);
-      //WiFi.mode(WIFI_MODE_STA);
-      //Serial.println(WiFi.macAddress());
-      WiFiManager wifiManager;
-      wifiManager.autoConnect();
-
+    // Begin WIFI
+    WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP    
+    // put your setup code here, to run once:
+    // initialize USB Serial Port CDC
+    Serial.begin(115200);
+    //reset settings - wipe credentials for testing
+    //wm.resetSettings();
+    wm.setHostname("taserface");
+    //wm.setConnectRetries(4);
+    wm.setConfigPortalBlocking(false);
+    wm.setConfigPortalTimeout(60);
+    // Automatically connect using saved credentials,
+    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+    // then goes into a blocking loop awaiting configuration and will return success result
+    if(wm.autoConnect("AutoConnectAP")){
+      Serial.println("connected...yeey :)");
+    }
+    else {
+      Serial.println("Configportal running");
+    }
+    
+    // END WIFI
+    // BEGIN EPD
     Serial.println();
-     pinMode(EPD_POWER_ENABLE, OUTPUT);
-     digitalWrite(EPD_POWER_ENABLE, HIGH);
-     
-     SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
-     display.init(); // enable diagnostic output on Serial
-     u8g2Fonts.begin(display);
-     display.setTextColor(GxEPD_BLACK);
-     u8g2Fonts.setFontMode(1);                            // use u8g2 transparent mode (this is default)
-     u8g2Fonts.setFontDirection(1);                       // left to right (this is default)
-     u8g2Fonts.setForegroundColor(GxEPD_BLACK);           // apply Adafruit GFX color
-     u8g2Fonts.setBackgroundColor(GxEPD_WHITE);           // apply Adafruit GFX color
-     u8g2Fonts.setFont(u8g2_font_pxplusibmvga8_tf );      // u8g2_font_4x6_tf 
-     display.setRotation(2);
-     display.fillScreen(GxEPD_WHITE);
-     u8g2Fonts.setCursor(65, 5);                          // start writing at this position
-     u8g2Fonts.print("SHUTUP && HACK");
-     u8g2Fonts.setCursor(50, 30);
-     u8g2Fonts.print("taseRFace");
-     u8g2Fonts.setCursor(30, 5);
-     //u8g2Fonts.setFont(u8g2_font_pxplusibmvga9_tf);      // u8g2_font_UnnamedDOSFontIV_tr 
-     u8g2Fonts.print("cc1101-tool");
-     u8g2Fonts.setCursor(10, 5);
-     u8g2Fonts.print("ESP32 Edition");
-     display.update();
-     delay(3000);
-     LilyGo_logo();
+    pinMode(EPD_POWER_ENABLE, OUTPUT);
+    digitalWrite(EPD_POWER_ENABLE, HIGH);
+    
+    SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
+    display.init(); // enable diagnostic output on Serial
+    u8g2Fonts.begin(display);
+    display.setTextColor(GxEPD_BLACK);
+    u8g2Fonts.setFontMode(1);                            // use u8g2 transparent mode (this is default)
+    u8g2Fonts.setFontDirection(1);                       // left to right (this is default)
+    u8g2Fonts.setForegroundColor(GxEPD_BLACK);           // apply Adafruit GFX color
+    u8g2Fonts.setBackgroundColor(GxEPD_WHITE);           // apply Adafruit GFX color
+    u8g2Fonts.setFont(u8g2_font_pxplusibmvga8_tf );      // u8g2_font_4x6_tf 
+    display.setRotation(2);
+    display.fillScreen(GxEPD_WHITE);
+    u8g2Fonts.setCursor(65, 5);                          // start writing at this position
+    u8g2Fonts.print("SHUTUP && HACK");
+    u8g2Fonts.setCursor(50, 30);
+    u8g2Fonts.print("taseRFace");
+    u8g2Fonts.setCursor(30, 5);
+    //u8g2Fonts.setFont(u8g2_font_pxplusibmvga9_tf);      // u8g2_font_UnnamedDOSFontIV_tr 
+    u8g2Fonts.print("cc1101-tool");
+    u8g2Fonts.setCursor(10, 5);
+    u8g2Fonts.print("ESP32 Edition");
+    display.update();
+    delay(3000);
+    LilyGo_logo();
 
-     Serial.println("setup done");
-     Serial.println();  // print CRLF
-     Serial.println(F("CC1101 terminal tool connected, use 'help' for list of commands...\n\r"));
-     Serial.println(F("(C) Adam Loboda 2023\n\r  "));
-
-     Serial.println();  // print CRLF
+    Serial.println();  // print CRLF
+    Serial.println(F("CC1101 terminal tool connected, use 'help' for list of commands...\n\r"));
+    Serial.println(F("(C) Adam Loboda 2023\n\r  "));
+    Serial.println();  // print CRLF
 
     //Init EEPROM - for ESP32 based boards only
-     EEPROM.begin(EPROMSIZE);
-    
-     // initialize CC1101 module with preffered parameters
-     cc1101initialize();
-
+    EEPROM.begin(EPROMSIZE);
+    // initialize CC1101 module with preffered parameters
+    cc1101initialize();
       if (ELECHOUSE_cc1101.getCC1101()) {  // Check the CC1101 Spi connection.
       Serial.println(F("cc1101 initialized. Connection OK\n\r"));
       } else {
       Serial.println(F("cc1101 connection error! check the wiring.\n\r"));
       };
 
-      // setup variables
-     bigrecordingbufferpos = 0;
+    // setup variables
+    bigrecordingbufferpos = 0;
 }
 
-
 void loop() {
-
+  wm.process();
   // index for serial port characters
   int i = 0;
-
     /* Process incoming commands. */
     while (Serial.available()) {
         static char buffer[BUF_LENGTH];
         static int length = 0;
-
     // handling CHAT MODE     
     if (chatmode == 1) 
        { 
-            
             // clear serial port buffer index
             i = 0;
 
@@ -1346,12 +1312,8 @@ void loop() {
                     bigrecordingbufferpos = 0;
                     recordingmode = 0;
                      };
-                
                };   // end of handling frame recording mode 
- 
           };   // end of CRC check IF
-
-
       };   // end of Check receive flag if
 
       // if jamming mode activate continously send something over RF...
@@ -1371,6 +1333,6 @@ void LilyGo_logo(void)
 {
     display.setRotation(3);
     display.fillScreen(GxEPD_WHITE);
-    display.drawExampleBitmap(jpd_bitmap_GeZYrrO, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
+    display.drawExampleBitmap(jpd_bitmap_taser, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
     display.update();
 }

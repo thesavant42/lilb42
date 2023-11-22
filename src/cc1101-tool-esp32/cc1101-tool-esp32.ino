@@ -1170,7 +1170,7 @@ void setup() {
     display.fillScreen(GxEPD_WHITE);
     
     u8g2Fonts.setCursor(65, 5);    // start writing at this position
-    u8g2Fonts.print("SHUTUP && HACK");
+    u8g2Fonts.print("shutup & HACK!");
     u8g2Fonts.setCursor(50, 30);
     u8g2Fonts.print("presents");
     u8g2Fonts.setCursor(30, 5);
