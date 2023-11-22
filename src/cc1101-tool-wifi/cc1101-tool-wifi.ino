@@ -26,7 +26,130 @@
 // Prepare Wifi
 #include <WiFi.h>
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
-WiFiManager wm;
+
+#define PORTAL_TIMEOUT  10 * 60 // seconds
+#define AP_NAME         "taserface"
+#define AP_PASSWORD     "12345678"
+#define SERIAL_SPEED    115200
+
+// Prepare ESPTelnet
+#include "ESPTelnet.h"
+
+ESPTelnet telnet;
+IPAddress ip;
+WiFiManager wifiManager;
+
+uint16_t  port = 23;
+
+void setupSerial(long speed, String msg = "") {
+  Serial.begin(speed);
+  while (!Serial) {
+  }
+  delay(200);  
+  Serial.println();
+  Serial.println();
+  if (msg != "") Serial.println(msg);
+}
+
+bool isConnected() {
+  return (WiFi.status() == WL_CONNECTED);
+}
+
+void useWiFiManager() {
+  // wifiManager.resetSettings();  // this will delete all credentials
+  wifiManager.setDebugOutput(false);
+  wifiManager.setConfigPortalTimeout(PORTAL_TIMEOUT);
+  wifiManager.setAPCallback([] (WiFiManager *myWiFiManager) {
+    Serial.println("- No known wifi found");
+    Serial.print("- Starting AP: ");
+    Serial.println(myWiFiManager->getConfigPortalSSID());
+    Serial.println(WiFi.softAPIP());
+  });
+  // enable autoconnect
+  if (!(AP_PASSWORD == "" ? 
+    wifiManager.autoConnect(AP_NAME) : 
+    wifiManager.autoConnect(AP_NAME, AP_PASSWORD))
+   ) {
+    Serial.println("- Failed to connect and hit timeout");
+    //ESP.reset();
+    delay(1000); 
+  }
+}
+
+void errorMsg(String error, bool restart = true) {
+  Serial.println(error);
+  if (restart) {
+    Serial.println("Rebooting now...");
+    delay(2000);
+    ESP.restart();
+    delay(2000);
+  }
+}
+
+void setupTelnet() {  
+  // passing on functions for various telnet events
+  telnet.onConnect(onTelnetConnect);
+  telnet.onConnectionAttempt(onTelnetConnectionAttempt);
+  telnet.onReconnect(onTelnetReconnect);
+  telnet.onDisconnect(onTelnetDisconnect);
+  
+  // passing a lambda function
+  telnet.onInputReceived([](String str) {
+    // checks for a certain command
+    if (str == "ping") {
+      telnet.println("> pong");
+      Serial.println("- Telnet: pong");
+    }
+  });
+
+  Serial.print("- Telnet: ");
+  if (telnet.begin()) {
+    Serial.println("running");
+  } else {
+    Serial.println("error.");
+    errorMsg("Will reboot...");
+  }
+}
+
+// (optional) callback functions for telnet events
+void onTelnetConnect(String ip) {
+  Serial.print("- Telnet: ");
+  Serial.print(ip);
+  Serial.println(" connected");
+  
+  telnet.println("\nWelcome " + telnet.getIP());
+  telnet.println("(Use ^] + q  to disconnect.)");
+}
+
+void onTelnetDisconnect(String ip) {
+  Serial.print("- Telnet: ");
+  Serial.print(ip);
+  Serial.println(" disconnected");
+}
+
+void onTelnetReconnect(String ip) {
+  Serial.print("- Telnet: ");
+  Serial.print(ip);
+  Serial.println(" reconnected");
+}
+
+void onTelnetConnectionAttempt(String ip) {
+  Serial.print("- Telnet: ");
+  Serial.print(ip);
+  Serial.println(" tried to connected");
+}
+
+void onTelnetInput(String str) {
+  // checks for a certain command
+  if (str == "ping") {
+    telnet.println("> pong");
+    Serial.println("- Telnet: pong");
+  // disconnect the client
+  } else if (str == "bye") {
+    telnet.println("> disconnecting you...");
+    telnet.disconnectClient();
+    }
+  }
 
 // Prepare EPD
 #include <boards.h>
@@ -47,7 +170,6 @@ void LilyGo_logo(void);
 // Prepare CC1101
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 #include <EEPROM.h>
-
 #define CCBUFFERSIZE 64
 #define RECORDINGBUFFERSIZE 4096   // Buffer for recording the frames
 #define EPROMSIZE 512              // Size of EEPROM in your Arduino chip. For ESP32 it is Flash simulated only 512 bytes, ESP8266 is 4096
@@ -1108,79 +1230,76 @@ static void exec(char *cmdline)
 }
 
 void setup() {
-    // Begin WIFI
-    WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP    
-    // put your setup code here, to run once:
-    // initialize USB Serial Port CDC
-    Serial.begin(115200);
-    //reset settings - wipe credentials for testing
-    //wm.resetSettings();
-    wm.setHostname("taserface");
-    //wm.setConnectRetries(4);
-    wm.setConfigPortalBlocking(false);
-    wm.setConfigPortalTimeout(60);
-    // Automatically connect using saved credentials,
-    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
-    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
-    // then goes into a blocking loop awaiting configuration and will return success result
-    if(wm.autoConnect("AutoConnectAP")){
-      Serial.println("connected...yeey :)");
-    }
-    else {
-      Serial.println("Configportal running");
-    }
+   setupSerial(SERIAL_SPEED, "Telnet Test");
+  
+  Serial.print("- Wifi: ");
+  useWiFiManager();
+  if (isConnected()) {
+    ip = WiFi.localIP();
+    Serial.print(" ");
+    Serial.println(ip);
+    setupTelnet();
+  } else {
+    Serial.println();    
+    errorMsg("Error connecting to WiFi");
+  }
+  // END WIFI
+    // TELNET
+
+  // BEGIN EPD
+  Serial.println();
+  pinMode(EPD_POWER_ENABLE, OUTPUT);
+  digitalWrite(EPD_POWER_ENABLE, HIGH);
     
-    // END WIFI
-    // BEGIN EPD
-    Serial.println();
-    pinMode(EPD_POWER_ENABLE, OUTPUT);
-    digitalWrite(EPD_POWER_ENABLE, HIGH);
-    
-    SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
-    display.init(); // enable diagnostic output on Serial
-    u8g2Fonts.begin(display);
-    display.setTextColor(GxEPD_BLACK);
-    u8g2Fonts.setFontMode(1);                            // use u8g2 transparent mode (this is default)
-    u8g2Fonts.setFontDirection(1);                       // left to right (this is default)
-    u8g2Fonts.setForegroundColor(GxEPD_BLACK);           // apply Adafruit GFX color
-    u8g2Fonts.setBackgroundColor(GxEPD_WHITE);           // apply Adafruit GFX color
-    u8g2Fonts.setFont(u8g2_font_pxplusibmvga8_tf );      // u8g2_font_4x6_tf 
-    display.setRotation(2);
-    display.fillScreen(GxEPD_WHITE);
-    u8g2Fonts.setCursor(65, 5);                          // start writing at this position
-    u8g2Fonts.print("SHUTUP && HACK");
-    u8g2Fonts.setCursor(50, 30);
-    u8g2Fonts.print("taseRFace");
-    u8g2Fonts.setCursor(30, 5);
-    //u8g2Fonts.setFont(u8g2_font_pxplusibmvga9_tf);      // u8g2_font_UnnamedDOSFontIV_tr 
-    u8g2Fonts.print("cc1101-tool");
-    u8g2Fonts.setCursor(10, 5);
-    u8g2Fonts.print("ESP32 Edition");
-    display.update();
-    delay(3000);
-    LilyGo_logo();
+  SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
+  display.init(); // enable diagnostic output on Serial
+  u8g2Fonts.begin(display);
+  display.setTextColor(GxEPD_BLACK);
+  u8g2Fonts.setFontMode(1);                            // use u8g2 transparent mode (this is default)
+  u8g2Fonts.setFontDirection(1);                       // left to right (this is default)
+  u8g2Fonts.setForegroundColor(GxEPD_BLACK);           // apply Adafruit GFX color
+  u8g2Fonts.setBackgroundColor(GxEPD_WHITE);           // apply Adafruit GFX color
+  u8g2Fonts.setFont(u8g2_font_pxplusibmvga8_tf );      // u8g2_font_4x6_tf 
+  display.setRotation(2);
+  display.fillScreen(GxEPD_WHITE);
+  u8g2Fonts.setCursor(65, 5);                          // start writing at this position
+  u8g2Fonts.print("SHUTUP && HACK");
+  u8g2Fonts.setCursor(50, 30);
+  u8g2Fonts.print("taseRFace");
+  u8g2Fonts.setCursor(30, 5);
+  //u8g2Fonts.setFont(u8g2_font_pxplusibmvga9_tf);      // u8g2_font_UnnamedDOSFontIV_tr 
+  u8g2Fonts.print("cc1101-tool");
+  u8g2Fonts.setCursor(10, 5);
+  u8g2Fonts.print("ESP32 Edition");
+  display.update();
+  delay(3000);
+  LilyGo_logo();
 
-    Serial.println();  // print CRLF
-    Serial.println(F("CC1101 terminal tool connected, use 'help' for list of commands...\n\r"));
-    Serial.println(F("(C) Adam Loboda 2023\n\r  "));
-    Serial.println();  // print CRLF
+  Serial.println();  // print CRLF
+  Serial.println(F("CC1101 terminal tool connected, use 'help' for list of commands...\n\r"));
+  Serial.println(F("(C) Adam Loboda 2023\n\r  "));
+  Serial.println();  // print CRLF
 
-    //Init EEPROM - for ESP32 based boards only
-    EEPROM.begin(EPROMSIZE);
-    // initialize CC1101 module with preffered parameters
-    cc1101initialize();
-      if (ELECHOUSE_cc1101.getCC1101()) {  // Check the CC1101 Spi connection.
-      Serial.println(F("cc1101 initialized. Connection OK\n\r"));
-      } else {
-      Serial.println(F("cc1101 connection error! check the wiring.\n\r"));
-      };
+  //Init EEPROM - for ESP32 based boards only
+  EEPROM.begin(EPROMSIZE);
+  // initialize CC1101 module with preffered parameters
+  cc1101initialize();
+    if (ELECHOUSE_cc1101.getCC1101()) {  // Check the CC1101 Spi connection.
+    Serial.println(F("cc1101 initialized. Connection OK\n\r"));
+    } else {
+    Serial.println(F("cc1101 connection error! check the wiring.\n\r"));
+    };
 
-    // setup variables
-    bigrecordingbufferpos = 0;
+  // setup variables
+  bigrecordingbufferpos = 0;
 }
 
 void loop() {
-  wm.process();
+  telnet.loop();
+  // send serial input to telnet as output
+  if (Serial.available()) {
+    telnet.print(Serial.read());
+  }
   // index for serial port characters
   int i = 0;
     /* Process incoming commands. */
