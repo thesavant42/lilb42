@@ -31,7 +31,8 @@
 
 #include <GxGDGDEW0102T4/GxGDGDEW0102T4.h> //1.02" b/w
 #include GxEPD_BitmapExamples
-#include <savant128x80.h>
+//#include <savant128x80.h>
+#include <images.h>
 #include <U8g2_for_Adafruit_GFX.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
 #include <GxIO/GxIO.h>
@@ -1171,11 +1172,11 @@ void setup() {
     u8g2Fonts.setCursor(65, 5);    // start writing at this position
     u8g2Fonts.print("SHUTUP && HACK");
     u8g2Fonts.setCursor(50, 30);
-    u8g2Fonts.print("taseRFace");
+    u8g2Fonts.print("presents");
     u8g2Fonts.setCursor(30, 5);
-    u8g2Fonts.print("cc1101-tool");
-    u8g2Fonts.setCursor(10, 5);
-    u8g2Fonts.print("ESP32 Edition");
+    u8g2Fonts.print("taseRFace");
+    u8g2Fonts.setCursor(10, 0);
+    u8g2Fonts.print("cc1101-tool-esp32");
     display.update();
 
      Serial.println("setup done");
@@ -1363,6 +1364,6 @@ void LilyGo_logo(void)
 {
     display.setRotation(3);
     display.fillScreen(GxEPD_WHITE);
-    display.drawExampleBitmap(epd_bitmap_savant, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
+    display.drawExampleBitmap(jpd_bitmap_taser, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
     display.update();
 }
