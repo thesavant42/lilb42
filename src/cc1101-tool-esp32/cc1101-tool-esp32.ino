@@ -28,7 +28,6 @@
 // Prepare EPD
 #include <boards.h>
 #include <GxEPD.h>
-
 #include <GxGDGDEW0102T4/GxGDGDEW0102T4.h> //1.02" b/w
 #include GxEPD_BitmapExamples
 //#include <savant128x80.h>
@@ -54,23 +53,24 @@ void LilyGo_logo(void);
 #define BUF_LENGTH 128             // Buffer for the incoming command.
 
 // defining PINs set for ESP32 module
-// Example for XIAO ESP32 C3
+// Example for Lilygo ePaper Mini ESP32 Pico Core
+/*
 byte sck = 26;   // GPIO 8 
 byte miso = 38;  // GPIO 4
 byte mosi = 23; // GPIO 10
 byte ss = 25;   // GPIO 20
 int gdo0 = 32;  // GPIO 21
 int gdo2 = 37;   // GPIO 7
-
-// defining PINs set for ESP32 WROOM module
-/*
-byte sck = 18;     // GPIO 18
-byte miso = 19;    // GPIO 19
-byte mosi = 23;    // GPIO
-byte ss = 5;       // GPIO 5
-int gdo0 = 2;      // GPIO 2
-int gdo2 = 4;      // GPIO 4
 */
+
+// Example for Lilygo ePaper Mini ESP32-S3 Core
+byte sck = 8;     // GPIO 18
+byte miso = 16;    // GPIO 19
+byte mosi = 17;    // GPIO
+byte ss = 7;       // GPIO 5
+int gdo0 = 5;      // GPIO 2
+int gdo2 = 16;      // GPIO 4
+
 
 // position in big recording buffer
 int bigrecordingbufferpos = 0; 
@@ -155,8 +155,8 @@ void asciitohex(byte *ascii_ptr, byte *hex_ptr,int len)
 static void cc1101initialize(void)
 {
     // initializing library with custom pins selected
-     ELECHOUSE_cc1101.setSpiPin(sck, miso, mosi, ss);
-     ELECHOUSE_cc1101.setGDO(gdo0, gdo2);
+     ELECHOUSE_cc1101.setSpiPin(RF_SCK, RF_MISO, RF_MOSI, RF_CS);
+     ELECHOUSE_cc1101.setGDO(RF_GDO0, RF_GDO2);
 
     // Main part to tune CC1101 with proper frequency, modulation and encoding    
     ELECHOUSE_cc1101.Init();                // must be set to initialize the cc1101!
@@ -1147,9 +1147,8 @@ static void exec(char *cmdline)
 void setup() {
 
      // initialize USB Serial Port CDC
-     Serial.begin(115200);
+     Serial.begin(460800);
      Serial.println();
-
      pinMode(EPD_POWER_ENABLE, OUTPUT);
      digitalWrite(EPD_POWER_ENABLE, HIGH);
      
@@ -1178,17 +1177,17 @@ void setup() {
     u8g2Fonts.setCursor(10, 0);
     u8g2Fonts.print("cc1101-tool-esp32");
     display.update();
+    LilyGo_logo();
 
      Serial.println("setup done");
      Serial.println();  // print CRLF
      Serial.println(F("CC1101 terminal tool connected, use 'help' for list of commands...\n\r"));
      Serial.println(F("(C) Adam Loboda 2023\n\r  "));
 
-     Serial.println();  // print CRLF
+     Serial.println();  // print CRLFGPIO
 
-    //Init EEPROM - for ESP32 based boards only
+     //Init EEPROM - for ESP32 based boards only
      EEPROM.begin(EPROMSIZE);
-    
      // initialize CC1101 module with preffered parameters
      cc1101initialize();
 
@@ -1204,7 +1203,6 @@ void setup() {
 
 
 void loop() {
-
   // index for serial port characters
   int i = 0;
 
