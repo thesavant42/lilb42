@@ -1,6 +1,6 @@
 Originally from https://github.com/joelsernamoreno/EvilCrowRF-V2/tree/main/firmware/other/ECRFv2-flipper
 
-Copy over the contents of the SDCARD fiolder onto an SD card.
+Copy over the contents of the [SDCARD fiolder](https://github.com/joelsernamoreno/EvilCrowRF-V2/tree/main/firmware/other/ECRFv2-flipper/SD) onto an SD card.
 
 I need to test if I can get away with setting this next bit in the Platformio.ini file or if I need to manually patch the library. I patched the library to have one less variable to eliminate while developing.
 
