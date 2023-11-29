@@ -2,6 +2,18 @@
 #include <Arduino.h>
 #include <GxEPD.h>
 #include <boards.h>
+#include <GxGDGDEW0102T4/GxGDGDEW0102T4.h>
+#include <U8g2_for_Adafruit_GFX.h>
+#include <GxIO/GxIO_SPI/GxIO_SPI.h>
+#include <GxIO/GxIO.h>
+
+GxIO_Class io(SPI,  EPD_CS, EPD_DC,  EPD_RSET);
+GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
+U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
+
+#include <drinky.h>
+void TaserFace_logo(void);
+
 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 #include <WiFiClient.h> 
@@ -538,6 +550,21 @@ void setup() {
 
   Serial.begin(SERIAL_BAUDRATE);
   power_management();
+
+  pinMode(EPD_POWER_ENABLE, OUTPUT);
+  digitalWrite(EPD_POWER_ENABLE, HIGH);
+
+  SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
+  display.init(); // enable diagnostic output on Serial
+  u8g2Fonts.begin(display);
+  display.setTextColor(GxEPD_BLACK);
+  u8g2Fonts.setFontMode(1);                           // use u8g2 transparent mode (this is default)
+  u8g2Fonts.setFontDirection(1);                      // left to right (this is default)
+  u8g2Fonts.setForegroundColor(GxEPD_BLACK);          // apply Adafruit GFX color
+  u8g2Fonts.setBackgroundColor(GxEPD_WHITE);          // apply Adafruit GFX color
+
+  TaserFace_logo();
+  Serial.println("setup done");
 
   SPIFFS.begin(FORMAT_ON_FAIL);
 
@@ -1154,4 +1181,12 @@ void loop() {
   if (digitalRead(BUTTON2) == LOW && buttonConfig[1].setted) {
         sendButtonSignal(1);
   }
+}
+
+void TaserFace_logo(void)
+{
+    display.setRotation(3);
+    display.fillScreen(GxEPD_WHITE);
+    display.drawExampleBitmap(epd_bitmap_drinky2128x80, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
+    display.update();
 }
