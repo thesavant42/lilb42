@@ -1,18 +1,40 @@
 /*
  Basic rtl_433_ESP example for OOK/ASK Devices
-
 */
+
 #include <Arduino.h>
 #include <GxEPD.h>
 #include <boards.h>
 #include <GxGDGDEW0102T4/GxGDGDEW0102T4.h>
+
 #include <U8g2_for_Adafruit_GFX.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
 #include <GxIO/GxIO.h>
 
+GxIO_Class io(SPI,  EPD_CS, EPD_DC,  EPD_RSET);
+GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
+
+
 #include <ArduinoJson.h>
 #include <ArduinoLog.h>
 #include <rtl_433_ESP.h>
+
+#include <images.h>
+
+#define TASERFACE_LOGO_BMP jpd_bitmap_taser433
+
+/*  TASERFACE_LOGO_BMP OPTIONS
+  jpd_bitmap_taser_logo - The Logo from sleep's friend
+  jpd_bitmap_bmo_smile_wide - bmo faces
+	jpd_bitmap_bmo_smile_small - bmo faces
+	jpd_bitmap_bmo_sleeping - bmo faces
+	jpd_bitmap_savant_logo - self defined
+  jpd_bitmap_taser433 - rtl_433_ESP
+
+  */
+
+
+void Taserface_logo(void);
 
 #ifndef RF_MODULE_FREQUENCY
 #  define RF_MODULE_FREQUENCY 433.92
@@ -25,6 +47,8 @@ char messageBuffer[JSON_MSG_BUFFER];
 rtl_433_ESP rf; // use -1 to disable transmitter
 
 int count = 0;
+
+void Taserface_logo();
 
 void rtl_433_Callback(char* message) {
   DynamicJsonBuffer jsonBuffer2(JSON_MSG_BUFFER);
@@ -56,6 +80,15 @@ void setup() {
   LOG_LEVEL_SILENT
 #endif
   Log.begin(LOG_LEVEL, &Serial);
+  
+  pinMode(EPD_POWER_ENABLE, OUTPUT);
+  digitalWrite(EPD_POWER_ENABLE, HIGH);
+
+  SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
+  display.init(); // enable diagnostic output on Serial
+  Taserface_logo();
+  delay(2000);
+
   Log.notice(F(" " CR));
   Log.notice(F("****** setup ******" CR));
   rf.initReceiver(RF_MODULE_RECEIVER_GPIO, RF_MODULE_FREQUENCY);
@@ -148,4 +181,12 @@ void loop() {
     // rf.getModuleStatus();
   }
 #endif
+}
+
+void Taserface_logo(void)
+{
+    display.setRotation(3);
+    display.fillScreen(GxEPD_WHITE);
+    display.drawExampleBitmap(TASERFACE_LOGO_BMP, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
+    display.update();
 }
