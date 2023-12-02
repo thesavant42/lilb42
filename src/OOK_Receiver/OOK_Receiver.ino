@@ -21,20 +21,10 @@ GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
 
 #include <images.h>
 
-#define TASERFACE_LOGO_BMP jpd_bitmap_taser433
+String TASERFACE_LOGO_BMP = "jpd_bitmap_taser433";
 
-/*  TASERFACE_LOGO_BMP OPTIONS
-  jpd_bitmap_taser_logo - The Logo from sleep's friend
-  jpd_bitmap_bmo_smile_wide - bmo faces
-	jpd_bitmap_bmo_smile_small - bmo faces
-	jpd_bitmap_bmo_sleeping - bmo faces
-	jpd_bitmap_savant_logo - self defined
-  jpd_bitmap_taser433 - rtl_433_ESP
+#define TASERFACE_LOGO_BMP jpd_bitmap_taser433 // See images.h
 
-  */
-
-
-void Taserface_logo(void);
 
 #ifndef RF_MODULE_FREQUENCY
 #  define RF_MODULE_FREQUENCY 433.92
@@ -183,7 +173,7 @@ void loop() {
 #endif
 }
 
-void Taserface_logo(void)
+void Taserface_logo(void) // const string& a
 {
     display.setRotation(3);
     display.fillScreen(GxEPD_WHITE);

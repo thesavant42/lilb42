@@ -1,9 +1,6 @@
 {
 	"folders": [
 		{
-			"path": "../../../../Downloads/esp32/evilcrow/EvilCrowRF-V2/firmware/other/ECRFv2-flipper"
-		},
-		{
 			"name": "231128-134923-esp32dev",
 			"path": "."
 		}

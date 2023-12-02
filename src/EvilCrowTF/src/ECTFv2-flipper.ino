@@ -11,7 +11,7 @@ GxIO_Class io(SPI,  EPD_CS, EPD_DC,  EPD_RSET);
 GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 
-#include <drinky.h>
+#include <images.h>
 void TaserFace_logo(void);
 
 
@@ -1187,6 +1187,6 @@ void TaserFace_logo(void)
 {
     display.setRotation(3);
     display.fillScreen(GxEPD_WHITE);
-    display.drawExampleBitmap(epd_bitmap_drinky2128x80, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
+    display.drawExampleBitmap(jpd_bitmap_drinkycrow, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
     display.update();
 }
