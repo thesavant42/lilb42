@@ -23,8 +23,7 @@ Spiffs will fail on first boot, unplug and replug the device.
 
 Spiffs will work now, but I believe a third booting is needed in order to bring the whole thing back up.
 
-The app requires a SPIFFS filesystem to function. The empty "data" directory is the directory that will get converted into the file system, so put things here that you would like to be baked into the image.
-
+The app requires a SPIFFS filesystem to function. You will need to create a directory called "data" in the root of this PlatformIO project.
 In the PlatformIO Sidebar, select Project Tasks -> Platform -> Builld Filesystem Image. This should very quickly complete without incident. When the device is ready to be flashed (no open serial monitors, no wifi connections), select Upload Filesystem Image.  Once the upload successfully completes, restart the device via the Reset button to load the new settings.
 
 ### SD
