@@ -41,8 +41,8 @@
 
 // Buttons and led
 //#define LED LED
-//#define BUTTON1 BUTTON1
-//#define BUTTON2 BUTTON2
+#define BUTTON1 TFBUTTON1
+#define BUTTON2 TFBUTTON2
 
 /* HTTP response codes */
 #define HTTP_OK 200

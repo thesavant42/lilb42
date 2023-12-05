@@ -38,7 +38,7 @@
     "arduino",
     "espidf"
     ],
-    "name": "LilyGo Mini-Epapaer-S3 (4 MB Flash, 2MB PSRAM)",
+    "name": "LilyGo Mini-Epaper-S3 (4 MB Flash, 2MB PSRAM)",
     "upload": {
     "flash_size": "4MB",
     "maximum_ram_size": 327680,

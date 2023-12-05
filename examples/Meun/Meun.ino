@@ -1,14 +1,6 @@
 /*
 Weather_clock Test example
 
-You need to fill in the information correctly in the code.
-const char *ssid       = "********";
-const char *password   = "********";
-String openWeatherMapApiKey = "************************";
-String city = "****";
-String countryCode = "**";
-
- This example code is in the public domain.
  */
 // According to the board, cancel the corresponding macro definition
 // https://www.lilygo.cc/products/mini-e-paper-core , esp32picod4
@@ -20,46 +12,46 @@ String countryCode = "**";
 // 请在草图上方选择对应的目标板子名称,将它取消注释.
 #error "Please select the corresponding target board name above the sketch and uncomment it."
 #endif
-
-
-#define TIME_ZONE  8
-#define TIME_WEATHER_SYNC //Reset to enable time weather calibration. You can comment it out
-
-
-#include <FunctionalInterrupt.h>
-#include "battery_index.h"
-#include <boards.h>
+#include <Arduino.h>
 #include <GxEPD.h>
+#include <boards.h>
 #include <GxGDGDEW0102T4/GxGDGDEW0102T4.h> //1.02" b/w
 
 #include GxEPD_BitmapExamples
 #include <U8g2_for_Adafruit_GFX.h>
+#include <GxIO/GxIO.h>
+#include <GxIO/GxIO_SPI/GxIO_SPI.h>
+
+#include <WiFi.h>
+#include <Wire.h>
+
+#define TIME_ZONE  8
+#define TIME_WEATHER_SYNC //Reset to enable time weather calibration. You can comment it out
+
+#include <FunctionalInterrupt.h>
+#include "battery_index.h"
+
 // FreeFonts from Adafruit_GFX
 #include <Fonts/FreeMono12pt7b.h>
 #include <Fonts/FreeMonoBold18pt7b.h>
 #include <Fonts/FreeMonoBold24pt7b.h>
-#include <GxIO/GxIO_SPI/GxIO_SPI.h>
-#include <GxIO/GxIO.h>
 
-#include "Arduino.h"
 #include <stdio.h>
-#include <WiFi.h>
-#include <Wire.h>
+
+#include <FS.h>
 #include <HTTPClient.h>
 #include <Arduino_JSON.h>
-#include "time.h"
-#include "pcf8563.h"
-#include "bma423.h"
-#include <QMC5883LCompass.h>
+#include <time.h>
+#include <pcf8563.h>
 
-const char *ssid = "REPLACE_WITH_YOUR_SSID";
-const char *password = "REPLACE_WITH_YOUR_PASSWORD";
+const char *ssid = "YOURWIFISSID";
+const char *password = "YOURASSWORD";
 
 // Your Domain name with URL path or IP address with path
-String openWeatherMapApiKey = "REPLACE_WITH_YOUR_OPEN_WEATHER_MAP_API_KEY";
+String openWeatherMapApiKey = "APIKEY";
 // Replace with your country code and city
-String city = "Shenzhen";
-String countryCode = "CN";
+String city = "Malibu";
+String countryCode = "US";
 
 String jsonBuffer;
 uint32_t    last = 0;
@@ -76,20 +68,15 @@ U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 struct tm timeinfo;
 String current_weather;
 PCF8563_Class rtc;
-QMC5883LCompass compass;
 int calibrationData[3][2];
 bool changed = false;
 char myArray[3];
-uint32_t   QMC_last = 0;
-struct bma4_dev bma;
-struct bma4_accel sens_data;
-struct bma4_accel_config accel_conf;
+
 int8_t rslt;
 /* Variable to get the step counter output */
 uint32_t step_out = 0;
 /* Variable to get the interrupt status  */
 uint16_t int_status = 0;
-bool BMA_IRQ = false;
 uint16_t counter_IRQ = 0;
 
 /* __  __ ______ _   _ _    _
@@ -123,7 +110,7 @@ struct menu_entry_type menu_entry_list[] = {
     { u8g2_font_open_iconic_all_6x_t, 93, "Clock "},
     //{ u8g2_font_open_iconic_all_6x_t, 225, "Music"},
     { u8g2_font_open_iconic_all_6x_t, 259, "Weather"},
-    { u8g2_font_open_iconic_all_6x_t, 136, "Compass"},
+    //{ u8g2_font_open_iconic_all_6x_t, 136, "Compass"},
     { u8g2_font_open_iconic_all_6x_t, 94, "Bluetooth"},
     { u8g2_font_open_iconic_all_6x_t, 281, "WIFI"},
     { NULL, 0, NULL }
@@ -154,25 +141,16 @@ using namespace ace_button;
 
 // Both buttons automatically use the default System ButtonConfig. The
 // alternative is to call the AceButton::init() method in setup() below.
-AceButton button1(BUTTON_1);
-AceButton button2(BUTTON_2);
+AceButton button1(BUTTON_2); // Swapping to match rotated screen
+AceButton button2(BUTTON_1); //
 AceButton button3((uint8_t)(BUTTON_3));
 
 // Forward reference to prevent Arduino compiler becoming confused.
 void handleEvent(AceButton *, uint8_t, uint8_t);
 
-
 uint16_t writeRegister(uint8_t address, uint8_t reg, uint8_t *data, uint16_t len);
 uint16_t readRegister(uint8_t address, uint8_t reg, uint8_t *data, uint16_t len);
 void LilyGo_logo();
-void BMA4_IIC_Configuration();
-void BMA4_Accel_Configuration();
-void BMA4_INT_Configuration();
-void BMA_setup();
-void BMA_main();
-void QMC_setup();
-void QMC_main();
-
 
 bool printLocalTime();
 void display_time();
@@ -199,7 +177,6 @@ uint8_t Compass_loop();
 uint8_t Bluetooth_loop();
 uint8_t WIFI_loop();
 
-
 void setup(void)
 {
 
@@ -208,12 +185,6 @@ void setup(void)
 
     pinMode(EPD_POWER_ENABLE, OUTPUT);
     digitalWrite(EPD_POWER_ENABLE, HIGH);
-
-
-    pinMode(MOTOR, OUTPUT);
-    digitalWrite(MOTOR, HIGH);
-    delay(1000);
-    digitalWrite(MOTOR, LOW);
 
     // Buttons use the built-in pull up register.
     pinMode(BUTTON_1, INPUT_PULLUP);
@@ -241,8 +212,6 @@ void setup(void)
 
     Wire.begin(IIC_SDA, IIC_SCL);
     rtc.begin();
-    BMA_setup();
-    QMC_setup();
 
 #ifdef TIME_WEATHER_SYNC
     Serial.printf("Connecting to %s ", ssid);
@@ -314,6 +283,7 @@ void loop()
 uint8_t clock_weather_loop()
 {
 
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display_time();
     display_Battery();
@@ -339,19 +309,7 @@ uint8_t clock_weather_loop()
             last = millis();
         }
 
-        if (millis() - QMC_last > 1000) {
-            QMC_main();
-            display.fillRect(105, 55, 10, 30, GxEPD_WHITE);
-            u8g2Fonts.setFont(u8g2_font_timB08_tr);
-            u8g2Fonts.setCursor(105, 55);
-            u8g2Fonts.print(myArray[0]);
-            u8g2Fonts.print(myArray[1]);
-            u8g2Fonts.print(myArray[2]);
-            display.updateWindow(105, 55, 10, 30, true);
-            QMC_last = millis();
-        }
 
-        BMA_main();
 
         button1.check();
         button2.check();
@@ -381,6 +339,7 @@ uint8_t clock_weather_loop()
 
 uint8_t clock_loop()
 {
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display.setCursor(0, 50);
     display.println("clock_loop");
@@ -414,6 +373,7 @@ uint8_t clock_loop()
 
 uint8_t weather_loop()
 {
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display.setCursor(0, 50);
     display.println("weather_loop");
@@ -447,6 +407,7 @@ uint8_t weather_loop()
 
 uint8_t Compass_loop()
 {
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display.setCursor(0, 50);
     display.println("Compass_loop");
@@ -480,6 +441,7 @@ uint8_t Compass_loop()
 
 uint8_t Bluetooth_loop()
 {
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display.setCursor(0, 50);
     display.println("Bluetooth_loop");
@@ -513,6 +475,7 @@ uint8_t Bluetooth_loop()
 
 uint8_t WIFI_loop()
 {
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display.setCursor(0, 50);
     display.println("WIFI_loop");
@@ -544,7 +507,6 @@ uint8_t WIFI_loop()
     }
 }
 
-
 bool check_button(uint8_t pin)
 {
     if (digitalRead(pin) == 0)   {
@@ -555,7 +517,6 @@ bool check_button(uint8_t pin)
     } else return false;
 
 }
-
 
 /*
  __          ________       _______ _    _ ______ _____
@@ -569,7 +530,7 @@ bool check_button(uint8_t pin)
 void display_weather()
 {
     get_weather();
-    display.setRotation(3);
+    display.setRotation(2);
     u8g2Fonts.setFont(u8g2_font_open_iconic_weather_2x_t ); //  weather iconic, select u8g2 font from here: https://github.com/olikraus/u8g2/wiki/fntlistall
     //display.fillScreen(GxEPD_WHITE);
     u8g2Fonts.setCursor(10, 5);
@@ -612,7 +573,7 @@ void get_weather()
         Serial.print("weather icon: ");
         Serial.println(myObject["weather"][0]["icon"]);
         */
-        current_weather = myObject["weather"][0]["main"];
+        current_weather = (const char*)myObject["weather"][0]["main"];
 
     } else {
         return;
@@ -666,7 +627,7 @@ void wifi_status(void)
         }
         Serial.println(" CONNECTED");
 
-        display.setRotation(3);
+        display.setRotation(2);
         u8g2Fonts.setFont(u8g2_font_helvR10_te); // select u8g2 font from here: https://github.com/olikraus/u8g2/wiki/fntlistall
         u8g2Fonts.setCursor(110, 5);
         u8g2Fonts.print("P");
@@ -694,12 +655,12 @@ void wifi_status(void)
 void display_wifi()
 {
     if (wifi_flag == 1) {//show  wifi icon
-        display.setRotation(3);
+        display.setRotation(2);
         u8g2Fonts.setFont(u8g2_font_open_iconic_embedded_2x_t); // select u8g2 font from here: https://github.com/olikraus/u8g2/wiki/fntlistall
         u8g2Fonts.setCursor(110, 5);
         u8g2Fonts.print("P");
     } else { //show  wifi icon
-        display.setRotation(3);
+        display.setRotation(2);
         u8g2Fonts.setFont(u8g2_font_open_iconic_other_2x_t); // select u8g2 font from here: https://github.com/olikraus/u8g2/wiki/fntlistall
         u8g2Fonts.setCursor(110, 5);
         u8g2Fonts.print("F");
@@ -711,7 +672,7 @@ void display_wifi()
 void display_Battery()
 {
 
-    int sensorValue = analogRead(35);
+    int sensorValue = analogRead(ADC_PIN);
     float voltage = sensorValue * (3.3 / 4096);
     delay(100);
     voltage = (voltage * 2) - 3.0;
@@ -722,7 +683,7 @@ void display_Battery()
     // print out the value you read:
     //Serial.println(sensorValue);
     //Serial.println(voltage);
-    display.setRotation(0);
+    display.setRotation(2);
     display.drawExampleBitmap(BMP[ADC_Int], 65, 0, 16, 8, GxEPD_BLACK);
 
 
@@ -743,7 +704,7 @@ void display_time()
     Serial.println(rtc.formatDateTime(PCF_TIMEFORMAT_HM));
     Serial.println(rtc.formatDateTime(PCF_TIMEFORMAT_YYYY_MM_DD));
 
-    display.setRotation(3);
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     u8g2Fonts.setFont(u8g2_font_fub20_tf );
     display.fillScreen(GxEPD_WHITE);
@@ -765,11 +726,11 @@ void display_time()
     u8g2Fonts.setFont(u8g2_font_helvR10_te);
     u8g2Fonts.println(&timeinfo, "%a");
 
-    display.setRotation(0);
+    display.setRotation(2);
     display.drawExampleBitmap(Walk_icon, 20, 85, 16, 18, GxEPD_BLACK);
 
     //Output the number
-    display.setRotation(3);
+    display.setRotation(2);
     u8g2Fonts.setCursor(28, 35);
     u8g2Fonts.println(step_out);
 
@@ -788,7 +749,7 @@ bool printLocalTime()
     while (!getLocalTime(&timeinfo)) {
         Serial.println("Failed to obtain time");
         //WIFI iconic
-        display.setRotation(3);
+        display.setRotation(2);
         u8g2Fonts.setFont(u8g2_font_helvR10_te); // select u8g2 font from here: https://github.com/olikraus/u8g2/wiki/fntlistall
         display.fillScreen(GxEPD_WHITE);
         u8g2Fonts.setCursor(90, 5);
@@ -836,176 +797,6 @@ const char bearings[16][3] =  {
     {'W', 'N', 'W'},
 };
 
-void QMC_setup()
-{
-
-    compass.init();
-    compass.setCalibration(-268, 1680, 0, 2005, 0, 2052);
-}
-
-void QMC_main()
-{
-
-    compass.read();
-
-    // Return XYZ readings
-    int x = compass.getX();
-    int y = compass.getY();
-    int z = compass.getZ();
-
-    Serial.print("X: ");
-    Serial.print(x);
-    Serial.print(" Y: ");
-    Serial.print(y);
-    Serial.print(" Z: ");
-    Serial.print(z);
-    Serial.println();
-
-    changed = false;
-
-    if (x < calibrationData[0][0]) {
-        calibrationData[0][0] = x;
-        changed = true;
-    }
-    if (x > calibrationData[0][1]) {
-        calibrationData[0][1] = x;
-        changed = true;
-    }
-
-    if (y < calibrationData[1][0]) {
-        calibrationData[1][0] = y;
-        changed = true;
-    }
-    if (y > calibrationData[1][1]) {
-        calibrationData[1][1] = y;
-        changed = true;
-    }
-
-    if (z < calibrationData[2][0]) {
-        calibrationData[2][0] = z;
-        changed = true;
-    }
-    if (z > calibrationData[2][1]) {
-        calibrationData[2][1] = z;
-        changed = true;
-    }
-
-    compass.setCalibration(calibrationData[0][0], calibrationData[0][1], calibrationData[1][0], calibrationData[1][1], calibrationData[2][0], calibrationData[2][1]);
-
-
-
-    int a = compass.getAzimuth();
-    int b = compass.getBearing(a);
-
-
-    myArray[0] = bearings[b][0];
-    myArray[1] = bearings[b][1];
-    myArray[2] = bearings[b][2];
-    /*
-      Serial.print(myArray[0]);
-      Serial.print(myArray[1]);
-      Serial.print(myArray[2]);
-      Serial.println();
-    */
-
-
-}
-
-
-/*
-  ____  __  __ _____
- |  _ \|  \/  |  __ \
- | |_) | \  / | |__) |
- |  _ <| |\/| |  ___/
- | |_) | |  | | |
- |____/|_|  |_|_|
-*/
-void bma_irq()
-{
-    // Set interrupt to set irq value to true
-    BMA_IRQ = true;
-}
-
-void BMA_setup()
-{
-    pinMode(BMP_INT1, INPUT_PULLUP);
-    attachInterrupt(BMP_INT1, bma_irq, RISING); //Select the interrupt mode according to the actual circuit
-
-
-
-    SPI.begin(EPD_SCLK, EPD_MISO, EPD_MOSI);
-    display.init(); // enable diagnostic output on Serial
-
-
-
-    BMA4_IIC_Configuration();
-    BMA4_Accel_Configuration();
-    BMA4_INT_Configuration();
-
-    rslt = bma423_step_detector_enable(BMA4_ENABLE, &bma);
-    Serial.print("bma423_step_detector_enable"); Serial.println(rslt);
-
-    /* Enable step counter */
-    rslt = bma423_feature_enable(BMA423_STEP_CNTR, 1, &bma);
-    if (rslt != BMA4_OK) {
-        Serial.print(" bma423_feature_enable FALL");
-        Serial.println(rslt);
-    }
-
-
-    /* Set water-mark level 1 to get interrupt after 20 steps.
-     * Range of step counter interrupt is 0 to 20460(resolution of 20 steps).
-     */
-    rslt = bma423_step_counter_set_watermark(1, &bma);
-    if (rslt != BMA4_OK) {
-        Serial.print("bma423_step_counter FALL");    //bma4_error_codes_print_result("bma423_step_counter status", rslt);
-        Serial.println(rslt);
-    }
-
-    rslt = bma4_set_advance_power_save(BMA4_ENABLE, &bma);
-    if (rslt != BMA4_OK) {
-        Serial.print(" power save FALL");
-        Serial.println(rslt);
-    }
-
-    Serial.println("Move/perform the walk/step action with the sensor\n");
-
-}
-
-void BMA_main()
-{
-    if (BMA_IRQ) {
-        BMA_IRQ = false;
-
-        /* Read the interrupt register to check whether step counter interrupt is received. */
-        rslt = bma423_read_int_status(&int_status, &bma);
-        if (rslt != BMA4_OK) {
-            Serial.print("bma423_read_int_status FALL");
-            Serial.println(rslt);
-        }
-
-
-        /*    Check if step counter interrupt is triggered */
-        if (int_status & BMA423_STEP_CNTR_INT) {
-            Serial.println("Step counter interrupt received");
-
-            /* On interrupt, Get step counter output */
-            rslt = bma423_step_counter_output(&step_out, &bma);
-            if (rslt != BMA4_OK) {
-                Serial.print(" bma423_step_counter_output FALL");
-                Serial.println(rslt);
-            }
-            counter_IRQ++;
-            Serial.print("step counter out"); Serial.println(step_out);
-            //display.println(step_out);
-            // display.updateWindow(box_x, box_y, box_w, box_h, true);
-
-        }
-
-    }
-
-}
-
 // Low-level I2C Communication
 // Provided to BMA423_Library communication interface
 //
@@ -1030,67 +821,6 @@ uint16_t writeRegister(uint8_t address, uint8_t reg, uint8_t *data, uint16_t len
     return (0 !=  Wire.endTransmission());
 }
 
-void BMA4_IIC_Configuration()
-{
-    bma.chip_id         = BMA423_CHIP_ID;
-    bma.dev_addr        = BMA4_I2C_ADDR_PRIMARY;
-    bma.interface       = BMA4_I2C_INTERFACE;
-    bma.bus_read        = readRegister;
-    bma.bus_write       = writeRegister;
-    bma.delay           = delay;
-    bma.read_write_len  = 8;
-    bma.resolution      = 12;
-    bma.feature_len     = BMA423_FEATURE_SIZE;
-
-    bma4_set_command_register(0xB6, &bma);
-    delay(20);
-
-    /* Sensor initialization */
-    rslt = bma423_init(&bma);
-    Serial.print("bma423_init"); Serial.println(rslt);
-
-
-    /* Upload the configuration file to enable the features of the sensor. */
-    rslt = bma423_write_config_file(&bma);
-    Serial.print("bma423_write_config"); Serial.println(rslt);
-
-}
-
-void BMA4_Accel_Configuration()
-{
-    accel_conf.odr = BMA4_OUTPUT_DATA_RATE_100HZ;
-    accel_conf.range = BMA4_ACCEL_RANGE_2G;
-    accel_conf.bandwidth = BMA4_ACCEL_NORMAL_AVG4;
-    accel_conf.perf_mode = BMA4_CIC_AVG_MODE;
-
-    /* Set the accel configurations */
-    rslt = bma4_set_accel_config(&accel_conf, &bma);
-    Serial.print("bma4_set_accel_config"); Serial.println(rslt);
-
-    /* Enable the accelerometer */
-    rslt = bma4_set_accel_enable(1, &bma);
-    Serial.print("bma4_set_accel_enable"); Serial.println(rslt);
-}
-
-void BMA4_INT_Configuration()
-{
-    struct bma4_int_pin_config intPinCofig;
-    intPinCofig.edge_ctrl = BMA4_LEVEL_TRIGGER;
-    intPinCofig.lvl = BMA4_ACTIVE_HIGH;
-    intPinCofig.input_en = BMA4_INPUT_DISABLE;
-    intPinCofig.od = BMA4_PUSH_PULL;//BMA4_OPEN_DRAIN;
-    intPinCofig.output_en = BMA4_OUTPUT_ENABLE;
-    /* Set the electrical behaviour of interrupt pin1 */
-    bma4_set_int_pin_config(&intPinCofig, BMA4_INTR1_MAP, &bma);
-
-
-    rslt = bma423_map_interrupt(BMA4_INTR1_MAP, BMA423_STEP_CNTR_INT, 1, &bma);
-    Serial.print("bma423_map_interrupt"); Serial.println(rslt);
-
-
-}
-
-
 
 
 /* __  __ ______ _   _ _    _
@@ -1104,11 +834,11 @@ uint8_t meun_loop()
 {
     first = true;
     display.setTextColor(GxEPD_BLACK);
-    u8g2Fonts.setFontMode(1);                           // use u8g2 transparent mode (this is default)
+    u8g2Fonts.setFontMode(0);                           // use u8g2 transparent mode (this is default)
     u8g2Fonts.setFontDirection(1);                      // left to right (this is default)
     u8g2Fonts.setForegroundColor(GxEPD_BLACK);          // apply Adafruit GFX color
     u8g2Fonts.setBackgroundColor(GxEPD_WHITE);          // apply Adafruit GFX color
-    display.setRotation(0);
+    display.setRotation(2);
     Serial.println("meun_loop");
 
     button3_flag = 0;
@@ -1130,8 +860,6 @@ uint8_t meun_loop()
             first = false;
             meun_update_flag = false;
         }
-
-        BMA_main();
 
         if (button1_flag  == 1 ) {
             Serial.println("button1_flag");
@@ -1167,7 +895,6 @@ uint8_t meun_loop()
 
 void draw(struct menu_state *state)
 {
-
     int16_t x;
     uint8_t i;
     x = state->menu_start;
@@ -1248,15 +975,11 @@ uint8_t towards(struct menu_state *current, struct menu_state *destination)
     return r;
 }
 
-
-
 void EnterSleep()
 {
-    display.setRotation(3);
-    digitalWrite(MOTOR, HIGH);
+    display.setRotation(2);
     delay(1000);
-    digitalWrite(MOTOR, LOW);
-
+    
     Serial.println("EnterSleep");
     display.fillScreen(GxEPD_WHITE);
     u8g2Fonts.setFont(u8g2_font_open_iconic_all_4x_t);
@@ -1271,16 +994,13 @@ void EnterSleep()
 
 void LilyGo_logo(void)
 {
-    display.setRotation(0);
+    display.setRotation(2);
     display.fillScreen(GxEPD_WHITE);
     display.drawExampleBitmap(BitmapExample1, 0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, GxEPD_BLACK);
     display.update();
     display.fillScreen(GxEPD_WHITE);
 
 }
-
-
-
 
 // The event handler for both buttons.
 void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
@@ -1319,4 +1039,3 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
         break;
     }
 }
-

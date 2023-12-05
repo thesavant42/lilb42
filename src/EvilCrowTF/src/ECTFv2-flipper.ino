@@ -1,4 +1,5 @@
 #include "config.h"
+#include "battery_index.h"
 #include <Arduino.h>
 #include <GxEPD.h>
 #include <boards.h>
@@ -14,6 +15,36 @@ U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 #include <images.h>
 void TaserFace_logo(void);
 
+/*
+  ____  _    _ _______ _______ ____  _   _
+ |  _ \| |  | |__   __|__   __/ __ \| \ | |
+ | |_) | |  | |  | |     | | | |  | |  \| |
+ |  _ <| |  | |  | |     | | | |  | | . ` |
+ | |_) | |__| |  | |     | | | |__| | |\  |
+ |____/ \____/   |_|     |_|  \____/|_| \_|
+ */
+bool button1_flag = 0;
+bool button2_flag = 0;
+bool button3_flag = 0;
+bool button3_long_flag = 0;
+
+#include <AceButton.h>
+using namespace ace_button;
+
+// Both buttons automatically use the default System ButtonConfig. The
+// alternative is to call the AceButton::init() method in setup() below.
+AceButton button1(BUTTON_1, HIGH);
+AceButton button2(BUTTON_2, HIGH);
+AceButton button3((uint8_t) BUTTON_3, HIGH); // 
+
+// Forward reference to prevent Arduino compiler becoming confused.
+void handleEvent(AceButton *, uint8_t, uint8_t);
+
+
+uint16_t writeRegister(uint8_t address, uint8_t reg, uint8_t *data, uint16_t len);
+uint16_t readRegister(uint8_t address, uint8_t reg, uint8_t *data, uint16_t len);
+
+void EnterSleep();
 
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 #include <WiFiClient.h> 
@@ -30,7 +61,15 @@ void TaserFace_logo(void);
 #include <FS.h>
 #include <SD.h>
 #include <AsyncJson.h>
-#include <ArduinoJson.h>  // install from library manager
+#include <ArduinoJson.h> 
+
+#include <FunctionalInterrupt.h>
+//#include "battery_index.h" // ./inc/battery_index.h:2:29: error: redefinition of 'const unsigned char BMP [][17]'
+
+// FreeFonts from Adafruit_GFX
+#include <Fonts/FreeMono12pt7b.h>
+#include <Fonts/FreeMonoBold18pt7b.h>
+#include <Fonts/FreeMonoBold24pt7b.h>
 
 
 #define signalstorage 10
@@ -40,7 +79,7 @@ SPIClass sdspi(HSPI);
 
 
 // Wifi parameters
-const char* ssid = "ECRFv2";
+const char* ssid = "Taserface";
 const char* password = "123456789";
 const int wifi_channel = 12;
 
@@ -76,8 +115,42 @@ int pos = 0;
 int transmissions;
 byte jammer[11] = {0xff,0xff,};
 
+//String bindataprotocol;
+//String bindata_protocol;
+
+//BTN Sending Config
+int btn_set_int;
+String btn_set;
+String btn1_frequency;
+String btn1_mod;
+String btn1_rawdata;
+String btn1_deviation;
+String btn1_transmission;
+String btn2_frequency;
+String btn2_mod;
+String btn2_rawdata;
+String btn2_deviation;
+String btn2_transmission;
+float tmp_btn1_deviation;
+float tmp_btn2_deviation;
+float tmp_btn1_frequency;
+float tmp_btn2_frequency;
+int tmp_btn1_mod;
+int tmp_btn2_mod;
+int tmp_btn1_transmission;
+int tmp_btn2_transmission;
 String bindataprotocol;
 String bindata_protocol;
+String btn1tesla = "0";
+String btn2tesla = "0";
+float tmp_btn1_tesla_frequency;
+float tmp_btn2_tesla_frequency;
+
+long data_button1[2000];
+long data_button2[2000];
+long data_button3[2000];
+
+int counter=0;
 
 // Wi-Fi config storage
 int storage_status;
@@ -324,6 +397,8 @@ bool checkReceived(void) {
   }
 }
 
+
+// writes to log
 void printReceived(){
   Serial.print("Count=");
   Serial.println(samplecount);
@@ -545,11 +620,23 @@ void force_reset() {
 }
 
 void setup() {
-  pinMode(BUTTON1, INPUT);
-  pinMode(BUTTON2, INPUT);
-
+  //pinMode(BUTTON1, INPUT_PULLUP);
+  //pinMode(BUTTON2, INPUT_PULLUP);
   Serial.begin(SERIAL_BAUDRATE);
   power_management();
+
+  // Buttons use the built-in pull up register.
+  pinMode(BUTTON_1, INPUT_PULLUP);
+  pinMode(BUTTON_2, INPUT_PULLUP);
+  pinMode(BUTTON_3, INPUT_PULLUP);
+  // Configure the ButtonConfig with the event handler, and enable all higher
+  // level events.
+  ButtonConfig *buttonConfig = ButtonConfig::getSystemButtonConfig();
+  buttonConfig->setEventHandler(handleEvent);
+  buttonConfig->setFeature(ButtonConfig::kFeatureClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureDoubleClick);
+  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
+  buttonConfig->setFeature(ButtonConfig::kFeatureRepeatPress);
 
   pinMode(EPD_POWER_ENABLE, OUTPUT);
   digitalWrite(EPD_POWER_ENABLE, HIGH);
@@ -916,7 +1003,7 @@ void setup() {
       request->send(200, "text/html", HTML_CSS_STYLING + "<script>alert(\"RX Config OK\")</script>");
     }
   });
-
+/* 
   controlserver.on("/setbtn", HTTP_POST, [](AsyncWebServerRequest *request){
     raw_rx = "0";
     int button = request->arg("button").toInt() - 1;
@@ -954,6 +1041,71 @@ void setup() {
       }
       request->send(HTTP_BAD_REQUEST, "text/html", "Button value is not valid.");
     }
+  });
+ */
+
+controlserver.on("/setbtn", HTTP_POST, [](AsyncWebServerRequest *request){
+    btn_set = request->arg("button");
+    btn_set_int = btn_set.toInt();
+    raw_rx = "0";
+    btn1tesla = "0";
+    btn2tesla = "0";
+    
+    if (btn_set_int == 1){
+      btn1_rawdata = request->arg("rawdata");
+      btn1_deviation = request->arg("deviation");
+      btn1_frequency = request->arg("frequency");
+      btn1_mod = request->arg("mod");
+      btn1_transmission = request->arg("transmissions");
+      counter=0;
+      int pos = 0;
+      for (int i = 0; i<btn1_rawdata.length(); i++){
+        if (btn1_rawdata.substring(i, i+1) == ","){
+          data_button1[counter]=btn1_rawdata.substring(pos, i).toInt();
+          pos = i+1;
+          counter++;
+        }
+      }
+    }
+    
+    if (btn_set_int == 2){
+      btn2_rawdata = request->arg("rawdata");
+      btn2_deviation = request->arg("deviation");
+      btn2_frequency = request->arg("frequency");
+      btn2_mod = request->arg("mod");
+      btn2_transmission = request->arg("transmissions");
+      counter=0;
+      int pos = 0;
+      for (int i = 0; i<btn2_rawdata.length(); i++){
+        if (btn2_rawdata.substring(i, i+1) == ","){
+          data_button2[counter]=btn2_rawdata.substring(pos, i).toInt();
+          pos = i+1;
+          counter++;
+        }
+      }
+    }
+    request->send(200, "text/html", HTML_CSS_STYLING + "<script>alert(\"Button Config OK\")</script>");
+  });
+
+  controlserver.on("/setbtntesla", HTTP_POST, [](AsyncWebServerRequest *request){
+    btn_set = request->arg("button");
+    btn_set_int = btn_set.toInt();
+    raw_rx = "0";
+    
+    if (btn_set_int == 1){
+      btn1_frequency = request->arg("frequency");
+      tmp_btn1_tesla_frequency = btn1_frequency.toFloat();
+      //Serial.print("Freq: ");
+      //Serial.println(btn1_frequency);
+      btn1tesla = "1";
+    }
+    
+    if (btn_set_int == 2){
+      btn2_frequency = request->arg("frequency");
+      tmp_btn2_tesla_frequency = btn2_frequency.toFloat();
+      btn2tesla = "1"; 
+    }
+    request->send(200, "text/html", HTML_CSS_STYLING + "<script>alert(\"Button Config OK\")</script>");
   });
 
   controlserver.on("/logview", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -1156,7 +1308,6 @@ void signalanalyse(){
 }
 
 void loop() {
-  //poweron_blink();
   if(raw_rx == "1") {
     if(checkReceived()){
       printReceived();
@@ -1175,12 +1326,48 @@ void loop() {
       }
     }
   }
-  if (digitalRead(BUTTON1) == LOW && buttonConfig[0].setted) {
-        sendButtonSignal(0);
+  if (digitalRead(BUTTON_1) == LOW && buttonConfig[0].setted) {
+    sendButtonSignal(0);
   }
-  if (digitalRead(BUTTON2) == LOW && buttonConfig[1].setted) {
-        sendButtonSignal(1);
+  if (digitalRead(BUTTON_2) == LOW && buttonConfig[1].setted) {
+    sendButtonSignal(1);
   }
+  
+  for (;;) {
+    button1.check();
+    button2.check();
+    button3.check();
+    if (button3_flag)  {
+      button3_flag = 0;
+      }
+    /*if (button1_flag)  {
+            button1_flag = 0 ;
+            return 0;
+        }
+        if (button2_flag)  {
+            button2_flag = 0;
+            return 0;
+        }*/
+    if (button3_long_flag)  {
+      button3_long_flag = 0;
+      EnterSleep();
+  }
+}
+}
+void EnterSleep()
+{
+    display.setRotation(3);
+    delay(1000);
+    Serial.println("EnterSleep");
+    display.fillScreen(GxEPD_WHITE);
+    u8g2Fonts.setFont(u8g2_font_open_iconic_all_4x_t);
+    u8g2Fonts.drawGlyph(65, 30, 235);
+    //display.print("EnterSleep");
+    display.update();
+    delay(2000);
+    esp_sleep_enable_ext1_wakeup(((uint64_t)(((uint64_t)1) << BUTTON_1)), ESP_EXT1_WAKEUP_ALL_LOW);
+    esp_deep_sleep_start();
+    /*Turn on power control*/
 }
 
 void TaserFace_logo(void)
@@ -1189,4 +1376,40 @@ void TaserFace_logo(void)
     display.fillScreen(GxEPD_WHITE);
     display.drawExampleBitmap(jpd_bitmap_drinkycrow, 0, 0, GxEPD_HEIGHT, GxEPD_WIDTH, GxEPD_WHITE);
     display.update();
+}
+
+void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
+{
+  // Print out a message for all events, for all 3 buttons.
+  Serial.print(F("handleEvent(): pin: "));
+  Serial.print(button->getPin());
+  Serial.print(F("; eventType: "));
+  Serial.print(eventType);
+  Serial.print(F("; buttonState: "));
+  Serial.println(buttonState);
+    
+  switch (eventType) {
+      
+    case AceButton::kEventReleased:
+      if (button->getPin() == BUTTON_1) {
+            //Serial.println(F("BUTTON_1 "));
+            button1_flag = 1;
+        }
+      if (button->getPin() == BUTTON_2) {
+            //Serial.println(F("BUTTON_2 "));
+            button2_flag = 1;
+        }
+      if (button->getPin() == BUTTON_3) {
+            //Serial.println(F("BUTTON_3 "));
+            button3_flag = 1;
+        }
+      break;
+      
+    case AceButton::kEventLongPressed:
+      if (button->getPin() == BUTTON_3) {
+        //Serial.println(F("BUTTON_3 EventLongPressed!"));
+        button3_long_flag = 1;
+      }
+      break;
+    }
 }
