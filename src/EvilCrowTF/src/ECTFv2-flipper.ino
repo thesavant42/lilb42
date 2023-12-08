@@ -8,21 +8,16 @@
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
 #include <GxIO/GxIO.h>
 
+// setup Epaper Display
 GxIO_Class io(SPI,  EPD_CS, EPD_DC,  EPD_RSET);
 GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 
 #include <images.h>
+#include <battery_index.h>
 void TaserFace_logo(void);
 
-/*
-  ____  _    _ _______ _______ ____  _   _
- |  _ \| |  | |__   __|__   __/ __ \| \ | |
- | |_) | |  | |  | |     | | | |  | |  \| |
- |  _ <| |  | |  | |     | | | |  | | . ` |
- | |_) | |__| |  | |     | | | |__| | |\  |
- |____/ \____/   |_|     |_|  \____/|_| \_|
- */
+/* Buttons */
 bool button1_flag = 0;
 bool button2_flag = 0;
 bool button3_flag = 0;
@@ -651,6 +646,7 @@ void setup() {
   u8g2Fonts.setBackgroundColor(GxEPD_WHITE);          // apply Adafruit GFX color
 
   TaserFace_logo();
+  
   Serial.println("setup done");
 
   SPIFFS.begin(FORMAT_ON_FAIL);
@@ -1356,16 +1352,16 @@ void loop() {
 }
 void EnterSleep()
 {
-    display.setRotation(3);
+    display.setRotation(2);
     delay(1000);
     Serial.println("EnterSleep");
     display.fillScreen(GxEPD_WHITE);
     u8g2Fonts.setFont(u8g2_font_open_iconic_all_4x_t);
-    u8g2Fonts.drawGlyph(65, 30, 235);
-    //display.print("EnterSleep");
+    u8g2Fonts.drawGlyph(40, 45, 235); // 30, 65, 235
+    //display.print("EnterSleep"); 
     display.update();
     delay(2000);
-    esp_sleep_enable_ext1_wakeup(((uint64_t)(((uint64_t)1) << BUTTON_1)), ESP_EXT1_WAKEUP_ALL_LOW);
+    esp_sleep_enable_ext1_wakeup(((uint64_t)(((uint64_t)1) << BUTTON_2)), ESP_EXT1_WAKEUP_ALL_LOW);
     esp_deep_sleep_start();
     /*Turn on power control*/
 }
@@ -1391,15 +1387,15 @@ void handleEvent(AceButton *button, uint8_t eventType, uint8_t buttonState)
   switch (eventType) {
       
     case AceButton::kEventReleased:
-      if (button->getPin() == BUTTON_1) {
+      if (button->getPin() == BUTTON_1) { // Cannot be used for ext1 wake
             //Serial.println(F("BUTTON_1 "));
             button1_flag = 1;
         }
-      if (button->getPin() == BUTTON_2) {
+      if (button->getPin() == BUTTON_2) {   // Can be used for ext1 wake
             //Serial.println(F("BUTTON_2 "));
             button2_flag = 1;
         }
-      if (button->getPin() == BUTTON_3) {
+      if (button->getPin() == BUTTON_3) { // Can be used for ext1 wake
             //Serial.println(F("BUTTON_3 "));
             button3_flag = 1;
         }
