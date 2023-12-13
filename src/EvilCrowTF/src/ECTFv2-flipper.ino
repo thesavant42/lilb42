@@ -14,7 +14,7 @@ GxEPD_Class display(io, EPD_RSET, EPD_BUSY);
 U8G2_FOR_ADAFRUIT_GFX u8g2Fonts;
 
 #include <images.h>
-#include <battery_index.h>
+//#include <battery_index.h>
 void TaserFace_logo(void);
 
 /* Buttons */
