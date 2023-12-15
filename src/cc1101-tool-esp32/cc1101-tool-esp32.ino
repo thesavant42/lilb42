@@ -30,7 +30,6 @@
 #include <GxEPD.h>
 #include <GxGDGDEW0102T4/GxGDGDEW0102T4.h> //1.02" b/w
 #include GxEPD_BitmapExamples
-//#include <savant128x80.h>
 #include <images.h>
 #include <U8g2_for_Adafruit_GFX.h>
 #include <GxIO/GxIO_SPI/GxIO_SPI.h>
