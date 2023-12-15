@@ -32,7 +32,7 @@ Copy the contents of this directory to the SD Card. This contains the HTML for t
 
 ### Wifi 
 
-`ECRFv2` is the accesspoint, 
+`Taserface` is the accesspoint, 
 
 `123456789` is the pin. 
 
